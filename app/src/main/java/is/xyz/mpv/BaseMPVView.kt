@@ -5,6 +5,7 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import com.lingoplay.module.mpv.MPVLib
 
 // Contains only the essential code needed to get a picture on the screen
 
@@ -87,6 +88,7 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
         MPVLib.setOptionString("force-window", "yes")
 
         if (filePath != null) {
+//            MPVLib.command(arrayOf("loadfile", "datasource://" + (filePath as String)))
             MPVLib.command(arrayOf("loadfile", filePath as String))
             filePath = null
         } else {

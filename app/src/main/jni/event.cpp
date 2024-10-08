@@ -5,6 +5,7 @@
 #include "globals.h"
 #include "jni_utils.h"
 #include "log.h"
+#define MPV_EVENT_THREAD "mpv-event"
 
 static void sendPropertyUpdateToJava(JNIEnv *env, mpv_event_property *prop) {
     jstring jprop = env->NewStringUTF(prop->name);
@@ -68,8 +69,7 @@ static void sendLogMessageToJava(JNIEnv *env, mpv_event_log_message *msg) {
 }
 
 void *event_thread(void *arg) {
-    JNIEnv *env = NULL;
-    acquire_jni_env(g_vm, &env);
+    JNIEnv *env = jni_get_env(MPV_EVENT_THREAD);
     if (!env)
         die("failed to acquire java env");
 
@@ -102,8 +102,6 @@ void *event_thread(void *arg) {
             break;
         }
     }
-
-    g_vm->DetachCurrentThread();
 
     return NULL;
 }

@@ -1,7 +1,8 @@
-package is.xyz.mpv;
+package com.lingoplay.module.mpv;
 
 // Wrapper for native library
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import android.content.Context;
@@ -18,6 +19,22 @@ public class MPVLib {
         for (String lib: libs) {
             System.loadLibrary(lib);
         }
+     }
+
+     private static MPVDataSource.Factory DATA_SOURCE_FACTORY = new DefaultMPVDataSourceFactory();
+
+     public static void setFactory(MPVDataSource.Factory factory) {
+          MPVLib.DATA_SOURCE_FACTORY = factory;
+     }
+
+     /**
+      * Called from native
+      */
+     public static MPVDataSource openDataSource(String uri) throws IOException {
+          if (DATA_SOURCE_FACTORY == null) {
+               throw new RuntimeException("Call MPVLib.setFactory first!");
+          }
+          return DATA_SOURCE_FACTORY.open(uri);
      }
 
      public static native void create(Context appctx);

@@ -16,6 +16,7 @@ extern "C" {
 #include "log.h"
 #include "jni_utils.h"
 #include "event.h"
+#include "data_source.h"
 
 #define ARRAYLEN(a) (sizeof(a)/sizeof(a[0]))
 
@@ -27,7 +28,6 @@ extern "C" {
     jni_func(void, command, jobjectArray jarray);
 };
 
-JavaVM *g_vm;
 mpv_handle *g_mpv;
 std::atomic<bool> g_event_thread_request_exit(false);
 
@@ -35,10 +35,6 @@ static pthread_t event_thread_id;
 
 static void prepare_environment(JNIEnv *env, jobject appctx) {
     setlocale(LC_NUMERIC, "C");
-
-    if (!env->GetJavaVM(&g_vm) && g_vm)
-        av_jni_set_java_vm(g_vm, NULL);
-    init_methods_cache(env);
 }
 
 jni_func(void, create, jobject appctx) {
@@ -50,6 +46,8 @@ jni_func(void, create, jobject appctx) {
     g_mpv = mpv_create();
     if (!g_mpv)
         die("context init failed");
+
+    mpv_stream_cb_add_ro(g_mpv, "datasource", NULL, mpv_open_data_source_fn);
 
     // use terminal log level but request verbose messages
     // this way --msg-level can be used to adjust later
@@ -101,3 +99,4 @@ jni_func(void, command, jobjectArray jarray) {
     for (int i = 0; i < len; ++i)
         env->ReleaseStringUTFChars((jstring)env->GetObjectArrayElement(jarray, i), arguments[i]);
 }
+

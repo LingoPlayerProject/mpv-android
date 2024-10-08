@@ -2,11 +2,11 @@
 
 #include <jni.h>
 
-#define jni_func_name(name) Java_is_xyz_mpv_MPVLib_##name
+#define jni_func_name(name) Java_com_lingoplay_module_mpv_MPVLib_##name
 #define jni_func(return_type, name, ...) JNIEXPORT return_type JNICALL jni_func_name(name) (JNIEnv *env, jobject obj, ##__VA_ARGS__)
 
-bool acquire_jni_env(JavaVM *vm, JNIEnv **env);
 void init_methods_cache(JNIEnv *env);
+JNIEnv *jni_get_env(const char *name);
 
 #ifndef UTIL_EXTERN
 #define UTIL_EXTERN extern
@@ -20,10 +20,18 @@ UTIL_EXTERN jmethodID android_graphics_Bitmap_createBitmap;
 UTIL_EXTERN jfieldID android_graphics_Bitmap_Config_ARGB_8888;
 
 UTIL_EXTERN jclass mpv_MPVLib;
+UTIL_EXTERN jclass mpv_MPVDataSource;
 UTIL_EXTERN jmethodID mpv_MPVLib_eventProperty_S,
 	mpv_MPVLib_eventProperty_Sb,
 	mpv_MPVLib_eventProperty_Sl,
 	mpv_MPVLib_eventProperty_Sd,
 	mpv_MPVLib_eventProperty_SS,
 	mpv_MPVLib_event,
-	mpv_MPVLib_logMessage_SiS;
+	mpv_MPVLib_logMessage_SiS,
+	mpv_MPVLib_openDataSource,
+	mpv_MPVDataSource_size,
+	mpv_MPVDataSource_read,
+	mpv_MPVDataSource_seek,
+	mpv_MPVDataSource_cancel,
+	mpv_MPVDataSource_close
+    ;

@@ -70,6 +70,17 @@ android.applicationVariants.all { variant ->
             output.versionCodeOverride = universalBase + variant.versionCode
     }
 }
+//
+//android {
+//    androidComponents {
+//        onVariants(selector()) { variant ->
+//            if (variant.buildType.toLowerCase().contains("debug")) {
+//                println("keepDebugSymbols ${variant.buildType}")
+//                variant.packaging.jniLibs.keepDebugSymbols.add("**/*.so")
+//            }
+//        }
+//    }
+//}
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"

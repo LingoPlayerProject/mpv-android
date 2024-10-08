@@ -1,12 +1,11 @@
 package `is`.xyz.mpv.config
 
 import `is`.xyz.mpv.BuildConfig
-import `is`.xyz.mpv.MPVLib
+import com.lingoplay.module.mpv.MPVLib
 import `is`.xyz.mpv.R
 import android.content.Context
 import android.util.AttributeSet
 import android.preference.DialogPreference
-import android.text.method.ScrollingMovementMethod
 import android.view.View
 import android.widget.TextView
 

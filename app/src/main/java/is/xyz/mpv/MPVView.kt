@@ -8,7 +8,8 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.*
 import androidx.core.content.ContextCompat
-import `is`.xyz.mpv.MPVLib.mpvFormat.*
+import com.lingoplay.module.mpv.MPVLib
+import com.lingoplay.module.mpv.MPVLib.mpvFormat.*
 import kotlin.reflect.KProperty
 
 internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(context, attrs) {
