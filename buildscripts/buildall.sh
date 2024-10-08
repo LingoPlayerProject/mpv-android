@@ -146,6 +146,9 @@ while [ $# -gt 0 ]; do
 		--clean)
 		cleanbuild=1
 		;;
+		--debug)
+        export DEBUG=1
+		;;
 		-n|--no-deps)
 		nodeps=1
 		;;
