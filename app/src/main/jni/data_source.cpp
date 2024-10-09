@@ -112,22 +112,22 @@ int64_t mpv_data_source_cb_read_fn(void *cookie, char *buf, uint64_t nbytes) {
  *         MPV_ERROR_UNSUPPORTED or MPV_ERROR_GENERIC if the seek failed
  */
 int64_t mpv_data_source_cb_seek_fn(void *cookie, int64_t offset) {
-        JNIEnv * env = jni_get_env(DATA_SOURCE_CB_THREAD_NAME);
-        if (env == NULL) {
-            return MPV_ERROR_GENERIC;
-        }
-        jobject source = (jobject) cookie;
+    JNIEnv * env = jni_get_env(DATA_SOURCE_CB_THREAD_NAME);
+    if (env == NULL) {
+        return MPV_ERROR_GENERIC;
+    }
+    jobject source = (jobject) cookie;
 
-        env->CallVoidMethod(source, mpv_MPVDataSource_seek, (jlong) offset);
-        if (env->ExceptionCheck())
-        {
-            ALOGE("DataSource seek error");
-            env->ExceptionDescribe();
-            env->ExceptionClear();
-            return MPV_ERROR_GENERIC;
-        }
+    env->CallVoidMethod(source, mpv_MPVDataSource_seek, (jlong) offset);
+    if (env->ExceptionCheck())
+    {
+        ALOGE("DataSource seek error");
+        env->ExceptionDescribe();
+        env->ExceptionClear();
+        return MPV_ERROR_GENERIC;
+    }
 
-        return MPV_ERROR_SUCCESS;
+    return MPV_ERROR_SUCCESS;
 }
 
 /**

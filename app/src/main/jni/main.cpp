@@ -35,6 +35,10 @@ static pthread_t event_thread_id;
 
 static void prepare_environment(JNIEnv *env, jobject appctx) {
     setlocale(LC_NUMERIC, "C");
+
+    JavaVM *g_vm;
+    if (!env->GetJavaVM(&g_vm) && g_vm)
+        av_jni_set_java_vm(g_vm, NULL);
 }
 
 jni_func(void, create, jobject appctx) {
