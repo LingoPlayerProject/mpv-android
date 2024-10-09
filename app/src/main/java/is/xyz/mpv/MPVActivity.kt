@@ -399,11 +399,11 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         }
 
         if (!activityIsForeground && didResumeBackgroundPlayback) {
-            MPVLib.command(arrayOf("loadfile", filepath, "append"))
+            MPVLib.command(arrayOf("loadfile", "datasource://" + filepath, "append"))
             showToast(getString(R.string.notice_file_appended))
             moveTaskToBack(true)
         } else {
-            MPVLib.command(arrayOf("loadfile", filepath))
+            MPVLib.command(arrayOf("loadfile", "datasource://" + filepath))
         }
     }
 
@@ -1100,7 +1100,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
                 openFilePickerFor(RCODE_LOAD_FILE, "", skip) { result, data ->
                     if (result == RESULT_OK) {
                         val path = data!!.getStringExtra("path")
-                        MPVLib.command(arrayOf("loadfile", path, "append"))
+                        MPVLib.command(arrayOf("loadfile", "datasource://" + path, "append"))
                         impl.refresh()
                     }
                 }
@@ -1111,7 +1111,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
                 val helper = Utils.OpenUrlDialog(this@MPVActivity)
                 with (helper) {
                     builder.setPositiveButton(R.string.dialog_ok) { _, _ ->
-                        MPVLib.command(arrayOf("loadfile", helper.text, "append"))
+                        MPVLib.command(arrayOf("loadfile", "datasource://" + helper.text, "append"))
                         impl.refresh()
                     }
                     builder.setNegativeButton(R.string.dialog_cancel) { dialog, _ -> dialog.cancel() }
@@ -1234,7 +1234,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
                 openContentFd(Uri.parse(path))
             else
                 path
-            MPVLib.command(arrayOf(cmd, path2, "cached"))
+            MPVLib.command(arrayOf(cmd, "datasource://" + path2, "cached"))
         }
 
         /******/
