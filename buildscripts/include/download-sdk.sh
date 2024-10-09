@@ -65,6 +65,7 @@ echo y | sdkmanager \
 	"platforms;android-${v_sdk_platform}" "build-tools;${v_sdk_build_tools}" \
 	"extras;android;m2repository"
 
+echo "ndkVersion $v_ndk"
 # Android NDK (either standalone or installed by SDK)
 if [ -d "android-ndk-${v_ndk}" ]; then
 	echo "Android NDK directory found."
