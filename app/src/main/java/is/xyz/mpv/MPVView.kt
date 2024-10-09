@@ -176,7 +176,7 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
         // This observes all properties needed by MPVView, MPVActivity or other classes
         data class Property(val name: String, val format: Int = MPV_FORMAT_NONE)
         val p = arrayOf(
-            Property("time-pos", MPV_FORMAT_INT64),
+            Property("time-pos", MPV_FORMAT_DOUBLE),
             Property("duration/full", MPV_FORMAT_DOUBLE),
             Property("pause", MPV_FORMAT_FLAG),
             Property("paused-for-cache", MPV_FORMAT_FLAG),
@@ -282,7 +282,10 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
 
     var timePos: Double?
         get() = MPVLib.getPropertyDouble("time-pos/full")
-        set(progress) = MPVLib.setPropertyDouble("time-pos", progress!!)
+        set(progress) {
+            Log.d("MPVView", "trigger seek")
+            MPVLib.command(arrayOf("seek", progress.toString(), "exact+absolute"))
+        }
 
     /** name of currently active hardware decoder or "no" */
     val hwdecActive: String

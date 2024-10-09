@@ -97,6 +97,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
 
         override fun onStopTrackingTouch(seekBar: SeekBar) {
             userIsOperatingSeekbar = false
+            Log.d("MPVActivity", "reset userIsOperatingSeekbar false")
             showControls() // re-trigger display timeout
         }
     }
@@ -1527,6 +1528,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     }
 
     private fun updatePlaybackPos(position: Int) {
+//        Log.d("MPVActivity", "time-pos A " + position)
         binding.playbackPositionTxt.text = Utils.prettyTime(position)
         if (useTimeRemaining) {
             val diff = psc.durationSec - position
@@ -1535,8 +1537,10 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
             else
                 Utils.prettyTime(-diff, true)
         }
-        if (!userIsOperatingSeekbar)
+        if (!userIsOperatingSeekbar) {
+//            Log.d("MPVActivity", "time-pos B " + position)
             binding.playbackSeekbar.progress = position * SEEK_BAR_PRECISION
+        }
 
         // Note: do NOT add other update functions here just because this is called every second.
         // Use property observation instead.
@@ -1715,7 +1719,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     private fun eventPropertyUi(property: String, value: Long) {
         if (!activityIsForeground) return
         when (property) {
-            "time-pos" -> updatePlaybackPos(psc.positionSec)
             "playlist-pos", "playlist-count" -> updatePlaylistButtons()
         }
     }
@@ -1723,6 +1726,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
     private fun eventPropertyUi(property: String, value: Double) {
         if (!activityIsForeground) return
         when (property) {
+            "time-pos" -> updatePlaybackPos(value.toInt())
             "duration/full" -> updatePlaybackDuration(psc.durationSec)
             "video-params/aspect", "video-params/rotate" -> {
                 updateOrientation()

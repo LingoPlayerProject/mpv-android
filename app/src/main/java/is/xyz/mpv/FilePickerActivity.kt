@@ -151,7 +151,7 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
                 val old: Boolean
                 with (fragment!!) {
                     old = filterPredicate != null
-                    filterPredicate = if (!old) MEDIA_FILE_FILTER else null
+                    filterPredicate = MEDIA_FILE_FILTER
                 }
                 with (Toast.makeText(this, "", Toast.LENGTH_SHORT)) {
                     setText(if (!old) R.string.notice_show_media_files else R.string.notice_show_all_files)
@@ -369,13 +369,7 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
         private const val PREF_PREFIX = "MainActivity_"
 
         private val MEDIA_FILE_FILTER = FileFilter { file ->
-            if (file.isDirectory) {
-                val contents: Array<String> = file.list() ?: arrayOf()
-                // filter hidden files due to stuff like ".thumbnails"
-                contents.filterNot { it.startsWith('.') }.any()
-            } else {
-                Utils.MEDIA_EXTENSIONS.contains(file.extension.lowercase())
-            }
+            true
         }
 
         // values for "skip" in intent

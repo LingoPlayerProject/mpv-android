@@ -31,7 +31,7 @@ public class FileMPVDataSource implements MPVDataSource {
         try {
             int read = raf.read(buf, 0, len);
             int ret =  read == -1 ? 0 : read;
-            Log.d("FileMPVDataSource", String.format("call FileMPVDataSource read, len %s, path %s, ret %s", len, path, ret));
+//            Log.d("FileMPVDataSource", String.format("call FileMPVDataSource read, len %s, path %s, ret %s", len, path, ret));
             return ret;
         } catch (IOException e) {
             Log.e("FileMPVDataSource", String.format("call FileMPVDataSource read exception. %s", path), e);

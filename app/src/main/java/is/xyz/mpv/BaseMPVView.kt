@@ -34,6 +34,8 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
         // need to idle at least once for playFile() logic to work
         MPVLib.setOptionString("idle", "once")
 
+        MPVLib.setOptionString("seekbarkeyframes", "no")
+
         holder.addCallback(this)
         observeProperties()
     }
