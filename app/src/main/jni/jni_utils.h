@@ -21,11 +21,7 @@ UTIL_EXTERN jfieldID android_graphics_Bitmap_Config_ARGB_8888;
 
 UTIL_EXTERN jclass mpv_MPVLib;
 UTIL_EXTERN jclass mpv_MPVDataSource;
-UTIL_EXTERN jmethodID mpv_MPVLib_eventProperty_S,
-	mpv_MPVLib_eventProperty_Sb,
-	mpv_MPVLib_eventProperty_Sl,
-	mpv_MPVLib_eventProperty_Sd,
-	mpv_MPVLib_eventProperty_SS,
+UTIL_EXTERN jmethodID mpv_MPVLib_eventProperty,
 	mpv_MPVLib_event,
 	mpv_MPVLib_logMessage_SiS,
 	mpv_MPVLib_openDataSource,

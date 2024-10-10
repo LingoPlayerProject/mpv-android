@@ -196,7 +196,7 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
         )
 
         for ((name, format) in p)
-            MPVLib.observeProperty(name, format)
+            MPVLib.observeProperty(name, format, 0)
     }
 
     fun addObserver(o: MPVLib.EventObserver) {

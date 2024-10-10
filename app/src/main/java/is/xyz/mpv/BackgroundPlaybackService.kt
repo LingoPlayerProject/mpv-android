@@ -19,6 +19,11 @@ import androidx.core.app.PendingIntentCompat
 import androidx.core.app.ServiceCompat
 import androidx.media.app.NotificationCompat.MediaStyle
 import com.lingoplay.module.mpv.MPVLib
+import com.lingoplay.module.mpv.MPVLib.mpvFormat.MPV_FORMAT_DOUBLE
+import com.lingoplay.module.mpv.MPVLib.mpvFormat.MPV_FORMAT_FLAG
+import com.lingoplay.module.mpv.MPVLib.mpvFormat.MPV_FORMAT_INT64
+import com.lingoplay.module.mpv.MPVLib.mpvFormat.MPV_FORMAT_NONE
+import com.lingoplay.module.mpv.MPVLib.mpvFormat.MPV_FORMAT_STRING
 
 /*
     All this service does is
@@ -137,31 +142,43 @@ class BackgroundPlaybackService : Service(), MPVLib.EventObserver {
     override fun onBind(intent: Intent): IBinder? { return null }
 
     /* Event observers */
+    override fun eventProperty(
+        property: String, format: Int, opaqueData: Long, longVal: Long, boolVal: Boolean,
+        doubleVal: Double, strVal: String
+    ) {
+        when (format) {
+            MPV_FORMAT_NONE -> eventProperty(property)
+            MPV_FORMAT_STRING -> eventProperty(property, strVal)
+            MPV_FORMAT_FLAG -> eventProperty(property, boolVal)
+            MPV_FORMAT_INT64 -> eventProperty(property, longVal)
+            MPV_FORMAT_DOUBLE -> eventProperty(property, doubleVal)
+        }
+    }
 
-    override fun eventProperty(property: String) {
+    fun eventProperty(property: String) {
         if (!cachedMetadata.update(property))
             return
         refreshNotification()
     }
 
-    override fun eventProperty(property: String, value: Boolean) {
+    fun eventProperty(property: String, value: Boolean) {
         if (property != "pause")
             return
         paused = value
         refreshNotification()
     }
 
-    override fun eventProperty(property: String, value: Long) { }
+    fun eventProperty(property: String, value: Long) { }
 
-    override fun eventProperty(property: String, value: Double) { }
+    fun eventProperty(property: String, value: Double) { }
 
-    override fun eventProperty(property: String, value: String) {
+    fun eventProperty(property: String, value: String) {
         if (!cachedMetadata.update(property, value))
             return
         refreshNotification()
     }
 
-    override fun event(eventId: Int) {
+    override fun event(eventId: Int, opaqueData: Long) {
         if (eventId == MPVLib.mpvEventId.MPV_EVENT_SHUTDOWN)
             stopSelf()
     }

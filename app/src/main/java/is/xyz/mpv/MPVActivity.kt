@@ -44,6 +44,11 @@ import androidx.media.AudioAttributesCompat
 import androidx.media.AudioFocusRequestCompat
 import androidx.media.AudioManagerCompat
 import com.lingoplay.module.mpv.MPVLib
+import com.lingoplay.module.mpv.MPVLib.mpvFormat.MPV_FORMAT_DOUBLE
+import com.lingoplay.module.mpv.MPVLib.mpvFormat.MPV_FORMAT_FLAG
+import com.lingoplay.module.mpv.MPVLib.mpvFormat.MPV_FORMAT_INT64
+import com.lingoplay.module.mpv.MPVLib.mpvFormat.MPV_FORMAT_NONE
+import com.lingoplay.module.mpv.MPVLib.mpvFormat.MPV_FORMAT_STRING
 import java.io.File
 import java.lang.IllegalArgumentException
 import kotlin.math.roundToInt
@@ -1749,7 +1754,20 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         // empty
     }
 
-    override fun eventProperty(property: String) {
+    override fun eventProperty(
+        property: String, format: Int, opaqueData: Long, longVal: Long, boolVal: Boolean,
+        doubleVal: Double, strVal: String
+    ) {
+        when (format) {
+            MPV_FORMAT_NONE -> eventProperty(property)
+            MPV_FORMAT_STRING -> eventProperty(property, strVal)
+            MPV_FORMAT_FLAG -> eventProperty(property, boolVal)
+            MPV_FORMAT_INT64 -> eventProperty(property, longVal)
+            MPV_FORMAT_DOUBLE -> eventProperty(property, doubleVal)
+        }
+    }
+
+    fun eventProperty(property: String) {
         val metaUpdated = psc.update(property)
         if (metaUpdated)
             updateMediaSession()
@@ -1765,7 +1783,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         eventUiHandler.post { eventPropertyUi(property, null, metaUpdated) }
     }
 
-    override fun eventProperty(property: String, value: Boolean) {
+    fun eventProperty(property: String, value: Boolean) {
         if (psc.update(property, value))
             updateMediaSession()
         if (property == "shuffle") {
@@ -1779,7 +1797,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         eventUiHandler.post { eventPropertyUi(property, value) }
     }
 
-    override fun eventProperty(property: String, value: Long) {
+    fun eventProperty(property: String, value: Long) {
         if (psc.update(property, value))
             updateMediaSession()
 
@@ -1787,7 +1805,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         eventUiHandler.post { eventPropertyUi(property, value) }
     }
 
-    override fun eventProperty(property: String, value: Double) {
+    fun eventProperty(property: String, value: Double) {
         if (psc.update(property, value))
             updateMediaSession()
 
@@ -1795,7 +1813,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         eventUiHandler.post { eventPropertyUi(property, value) }
     }
 
-    override fun eventProperty(property: String, value: String) {
+    fun eventProperty(property: String, value: String) {
         val metaUpdated = psc.update(property, value)
         if (metaUpdated)
             updateMediaSession()
@@ -1804,7 +1822,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
         eventUiHandler.post { eventPropertyUi(property, value, metaUpdated) }
     }
 
-    override fun event(eventId: Int) {
+    override fun event(eventId: Int, opaqueData: Long) {
         if (eventId == MPVLib.mpvEventId.MPV_EVENT_SHUTDOWN)
             finishWithResult(if (playbackHasStarted) RESULT_OK else RESULT_CANCELED)
 

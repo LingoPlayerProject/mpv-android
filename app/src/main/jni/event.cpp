@@ -7,41 +7,47 @@
 #include "log.h"
 #define MPV_EVENT_THREAD "mpv-event"
 
-static void sendPropertyUpdateToJava(JNIEnv *env, mpv_event_property *prop) {
+static void sendPropertyUpdateToJava(JNIEnv *env, uint64_t opaque_data, mpv_event_property *prop) {
     jstring jprop = env->NewStringUTF(prop->name);
-    jstring jvalue = NULL;
+    jlong long_val = 0;
+    jboolean bool_val = false;
+    jdouble double_val = false;
+    jstring str_val = NULL;
+
     switch (prop->format) {
-    case MPV_FORMAT_NONE:
-        env->CallStaticVoidMethod(mpv_MPVLib, mpv_MPVLib_eventProperty_S, jprop);
-        break;
-    case MPV_FORMAT_FLAG:
-        env->CallStaticVoidMethod(mpv_MPVLib, mpv_MPVLib_eventProperty_Sb, jprop,
-            (jboolean) (*(int*)prop->data != 0));
-        break;
-    case MPV_FORMAT_INT64:
-        env->CallStaticVoidMethod(mpv_MPVLib, mpv_MPVLib_eventProperty_Sl, jprop,
-            (jlong) *(int64_t*)prop->data);
-        break;
-    case MPV_FORMAT_DOUBLE:
-        env->CallStaticVoidMethod(mpv_MPVLib, mpv_MPVLib_eventProperty_Sd, jprop,
-            (jdouble) *(double*)prop->data);
-        break;
-    case MPV_FORMAT_STRING:
-        jvalue = env->NewStringUTF(*(const char**)prop->data);
-        env->CallStaticVoidMethod(mpv_MPVLib, mpv_MPVLib_eventProperty_SS, jprop, jvalue);
-        break;
-    default:
-        ALOGV("sendPropertyUpdateToJava: Unknown property update format received in callback: %d!", prop->format);
-        break;
+        case MPV_FORMAT_NONE:
+            break;
+        case MPV_FORMAT_FLAG:
+            bool_val = (jboolean)(*(int *) prop->data != 0);
+            break;
+        case MPV_FORMAT_INT64:
+            long_val = (jlong) * (int64_t *) prop->data;
+            break;
+        case MPV_FORMAT_DOUBLE:
+            double_val = (jdouble) * (double *) prop->data;
+            break;
+        case MPV_FORMAT_STRING:
+            str_val = env->NewStringUTF(*(const char **) prop->data);
+            break;
+        default:
+            ALOGV("sendPropertyUpdateToJava: Unknown property update format received in callback: %d!",
+                  prop->format);
+            break;
+    }
+    env->CallStaticVoidMethod(mpv_MPVLib, mpv_MPVLib_eventProperty, (jint) prop->format, (jlong) opaque_data,
+                              long_val, bool_val, double_val, str_val);
+    if (env->ExceptionCheck()) {
+        ALOGE("sendPropertyUpdateToJava got exception: %s! \n", prop->name);
+        env->ExceptionClear();
     }
     if (jprop)
         env->DeleteLocalRef(jprop);
-    if (jvalue)
-        env->DeleteLocalRef(jvalue);
+    if (str_val)
+        env->DeleteLocalRef(str_val);
 }
 
-static void sendEventToJava(JNIEnv *env, int event) {
-    env->CallStaticVoidMethod(mpv_MPVLib, mpv_MPVLib_event, event);
+static void sendEventToJava(JNIEnv *env, int event, uint64_t opaque_data) {
+    env->CallStaticVoidMethod(mpv_MPVLib, mpv_MPVLib_event, event, (jlong) opaque_data);
 }
 
 static inline bool invalid_utf8(unsigned char c) {
@@ -94,11 +100,11 @@ void *event_thread(void *arg) {
             break;
         case MPV_EVENT_PROPERTY_CHANGE:
             mp_property = (mpv_event_property*)mp_event->data;
-            sendPropertyUpdateToJava(env, mp_property);
+            sendPropertyUpdateToJava(env, mp_event->reply_userdata, mp_property);
             break;
         default:
             ALOGV("event: %s\n", mpv_event_name(mp_event->event_id));
-            sendEventToJava(env, mp_event->event_id);
+            sendEventToJava(env, mp_event->event_id, mp_event->reply_userdata);
             break;
         }
     }
