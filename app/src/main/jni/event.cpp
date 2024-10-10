@@ -47,9 +47,6 @@ static void sendPropertyUpdateToJava(JNIEnv *env, uint64_t opaque_data, mpv_even
         env->DeleteLocalRef(str_val);
 }
 
-static void sendEventToJava(JNIEnv *env, int event, uint64_t opaque_data) {
-    env->CallStaticVoidMethod(mpv_MPVLib, mpv_MPVLib_event, event, (jlong) opaque_data);
-}
 
 static inline bool invalid_utf8(unsigned char c) {
     return c == 0xc0 || c == 0xc1 || c >= 0xf5;
@@ -67,7 +64,7 @@ static void sendLogMessageToJava(JNIEnv *env, mpv_event_log_message *msg) {
     jstring jtext = env->NewStringUTF(msg->text);
 
     env->CallStaticVoidMethod(mpv_MPVLib, mpv_MPVLib_logMessage_SiS,
-        jprefix, (jint) msg->log_level, jtext);
+                              jprefix, (jint) msg->log_level, jtext);
 
     if (jprefix)
         env->DeleteLocalRef(jprefix);
@@ -94,19 +91,25 @@ void *event_thread(void *arg) {
             continue;
 
         switch (mp_event->event_id) {
-        case MPV_EVENT_LOG_MESSAGE:
-            msg = (mpv_event_log_message*)mp_event->data;
-            ALOGV("[%s:%s] %s", msg->prefix, msg->level, msg->text);
-            sendLogMessageToJava(env, msg);
-            break;
-        case MPV_EVENT_PROPERTY_CHANGE:
-            mp_property = (mpv_event_property*)mp_event->data;
-            sendPropertyUpdateToJava(env, mp_event->reply_userdata, mp_property);
-            break;
-        default:
-            ALOGV("event: %s\n", mpv_event_name(mp_event->event_id));
-            sendEventToJava(env, mp_event->event_id, mp_event->reply_userdata);
-            break;
+            case MPV_EVENT_LOG_MESSAGE:
+                msg = (mpv_event_log_message*)mp_event->data;
+                ALOGV("[%s:%s] %s", msg->prefix, msg->level, msg->text);
+                sendLogMessageToJava(env, msg);
+                break;
+            case MPV_EVENT_PROPERTY_CHANGE:
+                mp_property = (mpv_event_property*)mp_event->data;
+                sendPropertyUpdateToJava(env, mp_event->reply_userdata, mp_property);
+                break;
+            case MPV_EVENT_END_FILE:
+                jint reason;
+                reason = (jint) ((mpv_event_end_file*)mp_event->data)->reason;
+                ALOGV("event: %s\n", mpv_event_name(mp_event->event_id));
+                env->CallStaticVoidMethod(mpv_MPVLib, mpv_MPVLib_eventEndFile, mp_event->event_id, reason);
+                break;
+            default:
+                ALOGV("event: %s\n", mpv_event_name(mp_event->event_id));
+                env->CallStaticVoidMethod(mpv_MPVLib, mpv_MPVLib_event, mp_event->event_id, (jlong) mp_event->reply_userdata);
+                break;
         }
     }
 

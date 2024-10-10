@@ -23,6 +23,7 @@ UTIL_EXTERN jclass mpv_MPVLib;
 UTIL_EXTERN jclass mpv_MPVDataSource;
 UTIL_EXTERN jmethodID mpv_MPVLib_eventProperty,
 	mpv_MPVLib_event,
+    mpv_MPVLib_eventEndFile,
 	mpv_MPVLib_logMessage_SiS,
 	mpv_MPVLib_openDataSource,
 	mpv_MPVDataSource_size,

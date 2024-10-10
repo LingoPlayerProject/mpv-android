@@ -2,6 +2,8 @@ package com.lingoplay.module.mpv;
 
 // Wrapper for native library
 
+import static com.lingoplay.module.mpv.MPVLib.mpvEventId.MPV_EVENT_PLAYBACK_RESTART;
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.util.Log;
@@ -117,6 +119,17 @@ public class MPVLib {
         }
     }
 
+    // Called from native
+    private static void eventEndFile(int eventId, int reason) {
+        for (EventObserver o : observers) {
+            try {
+                o.eventEndFile(eventId, reason);
+            } catch (Exception e) {
+                Log.e("MPVLib", "eventEndFile callback err", e);
+            }
+        }
+    }
+
     private static final List<LogObserver> log_observers = new CopyOnWriteArrayList<>();
 
     public static void addLogObserver(LogObserver o) {
@@ -134,10 +147,12 @@ public class MPVLib {
     }
 
     public interface EventObserver {
-        void eventProperty(String property, int format, long opaqueData, long longVal, boolean boolVal,
-                           double doubleVal, String strVal);
+        default void eventProperty(String property, int format, long opaqueData, long longVal, boolean boolVal,
+                           double doubleVal, String strVal) {}
 
-        void event(int eventId, long opaqueData);
+        default void eventEndFile(int eventId, int reason) {}
+
+        default  void event(int eventId, long opaqueData) {}
     }
 
     public interface LogObserver {
@@ -188,5 +203,13 @@ public class MPVLib {
         public static final int MPV_LOG_LEVEL_V = 50;
         public static final int MPV_LOG_LEVEL_DEBUG = 60;
         public static final int MPV_LOG_LEVEL_TRACE = 70;
+    }
+
+    public static class mpvEndFileReason {
+        public static final int MPV_END_FILE_REASON_EOF = 0;
+        public static final int MPV_END_FILE_REASON_STOP = 2;
+        public static final int MPV_END_FILE_REASON_QUIT = 3;
+        public static final int MPV_END_FILE_REASON_ERROR = 4;
+        public static final int MPV_END_FILE_REASON_REDIRECT = 5;
     }
 }
