@@ -130,5 +130,5 @@ jni_func(void, unobserveProperty, jlong opaque_data) {
         die("mpv is not initialized");
     int result = mpv_unobserve_property(g_mpv, opaque_data);
     if (result <= 0)
-        ALOGI("unobserveProperty has no effect!");
+        ALOGV("unobserveProperty has no effect!");
 }
