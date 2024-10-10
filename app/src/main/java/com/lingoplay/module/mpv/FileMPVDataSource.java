@@ -6,6 +6,14 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 
 public class FileMPVDataSource implements MPVDataSource {
+
+    public static class Factory implements MPVDataSource.Factory {
+        @Override
+        public MPVDataSource open(String uri) throws IOException {
+            return new FileMPVDataSource(uri.substring("datasource://".length()));
+        }
+    }
+
     private final String path;
     private final RandomAccessFile raf;
 

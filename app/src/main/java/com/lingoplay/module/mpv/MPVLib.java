@@ -18,6 +18,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @SuppressWarnings("unused")
 public class MPVLib {
 
+    public static final String DATA_SOURCE_SCHEME = "datasource";
+
     static {
         String[] libs = {"mpv", "player"};
         for (String lib : libs) {
