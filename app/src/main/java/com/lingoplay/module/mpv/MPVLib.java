@@ -78,6 +78,12 @@ public class MPVLib {
 
     public static native void observeProperty(@NonNull String property, int format, long opaqueData);
 
+    public static native void unobserveProperty(long opaqueData);
+
+    public static void observeProperty(@NonNull String property, int format) {
+        observeProperty(property, format, 0);
+    }
+
     private static final List<EventObserver> observers = new CopyOnWriteArrayList<>();
 
     public static void addObserver(EventObserver o) {

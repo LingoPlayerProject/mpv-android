@@ -20,6 +20,7 @@ extern "C" {
     jni_func(void, setPropertyString, jstring jproperty, jstring jvalue);
 
     jni_func(void, observeProperty, jstring property, jint format, jlong opaque_data);
+    jni_func(void, unobserveProperty, jlong opaque_data);
 }
 
 jni_func(jint, setOptionString, jstring joption, jstring jvalue) {
@@ -122,4 +123,12 @@ jni_func(void, observeProperty, jstring property, jint format, jlong opaque_data
     if (result < 0)
         ALOGE("mpv_observe_property(%s) format %d returned error %s", prop, format, mpv_error_string(result));
     env->ReleaseStringUTFChars(property, prop);
+}
+
+jni_func(void, unobserveProperty, jlong opaque_data) {
+    if (!g_mpv)
+        die("mpv is not initialized");
+    int result = mpv_unobserve_property(g_mpv, opaque_data);
+    if (result <= 0)
+        ALOGI("unobserveProperty has no effect!");
 }
