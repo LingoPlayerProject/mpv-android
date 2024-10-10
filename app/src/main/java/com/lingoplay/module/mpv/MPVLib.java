@@ -4,6 +4,7 @@ package com.lingoplay.module.mpv;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.util.Log;
 import android.view.Surface;
 
 import androidx.annotation.NonNull;
@@ -11,6 +12,7 @@ import androidx.annotation.NonNull;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @SuppressWarnings("unused")
@@ -25,7 +27,8 @@ public class MPVLib {
 
     private static MPVDataSource.Factory DATA_SOURCE_FACTORY = null;
 
-    public static void setFactory(MPVDataSource.Factory factory) {
+    public static void setDataSourceFactory(MPVDataSource.Factory factory) {
+        Objects.requireNonNull(factory);
         MPVLib.DATA_SOURCE_FACTORY = factory;
     }
 
@@ -87,14 +90,22 @@ public class MPVLib {
     private static void eventProperty(String property, int format, long opaqueData, long longVal, boolean boolVal,
                                       double doubleVal, String strVal) {
         for (EventObserver o : observers) {
-            o.eventProperty(property, format, opaqueData, longVal, boolVal, doubleVal, strVal);
+            try {
+                o.eventProperty(property, format, opaqueData, longVal, boolVal, doubleVal, strVal);
+            } catch (Exception e) {
+                Log.e("MPVLib", "eventProperty callback err", e);
+            }
         }
     }
 
     // Called from native
     private static void event(int eventId, long opaqueData) {
         for (EventObserver o : observers) {
-            o.event(eventId, opaqueData);
+            try {
+                o.event(eventId, opaqueData);
+            } catch (Exception e) {
+                Log.e("MPVLib", "event callback err", e);
+            }
         }
     }
 

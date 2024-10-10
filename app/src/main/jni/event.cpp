@@ -34,10 +34,11 @@ static void sendPropertyUpdateToJava(JNIEnv *env, uint64_t opaque_data, mpv_even
                   prop->format);
             break;
     }
-    env->CallStaticVoidMethod(mpv_MPVLib, mpv_MPVLib_eventProperty, (jint) prop->format, (jlong) opaque_data,
+    env->CallStaticVoidMethod(mpv_MPVLib, mpv_MPVLib_eventProperty, jprop,
+                              (jint) prop->format, (jlong) opaque_data,
                               long_val, bool_val, double_val, str_val);
     if (env->ExceptionCheck()) {
-        ALOGE("sendPropertyUpdateToJava got exception: %s! \n", prop->name);
+        ALOGE("callback eventProperty '%s' got exception! \n", prop->name);
         env->ExceptionClear();
     }
     if (jprop)

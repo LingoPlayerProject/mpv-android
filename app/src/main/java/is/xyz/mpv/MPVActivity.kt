@@ -1756,11 +1756,11 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, TouchGesturesObse
 
     override fun eventProperty(
         property: String, format: Int, opaqueData: Long, longVal: Long, boolVal: Boolean,
-        doubleVal: Double, strVal: String
+        doubleVal: Double, strVal: String?
     ) {
         when (format) {
             MPV_FORMAT_NONE -> eventProperty(property)
-            MPV_FORMAT_STRING -> eventProperty(property, strVal)
+            MPV_FORMAT_STRING -> eventProperty(property, strVal!!)
             MPV_FORMAT_FLAG -> eventProperty(property, boolVal)
             MPV_FORMAT_INT64 -> eventProperty(property, longVal)
             MPV_FORMAT_DOUBLE -> eventProperty(property, doubleVal)
