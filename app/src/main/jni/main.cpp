@@ -29,7 +29,7 @@ extern "C" {
 };
 
 mpv_handle *g_mpv;
-std::atomic<bool> g_event_thread_request_exit(false);
+std::atomic<bool> destroyed(false);
 
 static pthread_t event_thread_id;
 
@@ -70,21 +70,29 @@ jni_func(void, init) {
     ALOGV("You're using the 64-bit build of mpv!");
 #endif
 
-    g_event_thread_request_exit = false;
+    destroyed = false;
     pthread_create(&event_thread_id, NULL, event_thread, NULL);
 }
 
 jni_func(void, destroy) {
     if (!g_mpv)
         die("mpv destroy called but it's already destroyed");
-
+    if (destroyed)
+        return;
     // poke event thread and wait for it to exit
-    g_event_thread_request_exit = true;
+    destroyed = true;
+    ALOGV("Native destroy..");
     mpv_wakeup(g_mpv);
-    pthread_join(event_thread_id, NULL);
+    int r = pthread_join(event_thread_id, NULL);
+    if (r != 0) {
+        ALOGV("pthread_join failed: %s\n", strerror(r));
+    } else {
+        ALOGV("Native destroy event_thread joined");
+    }
 
     mpv_terminate_destroy(g_mpv);
     g_mpv = NULL;
+    ALOGV("Native destroy mpv_handle destroyed");
 }
 
 jni_func(void, command, jobjectArray jarray) {

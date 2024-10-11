@@ -84,8 +84,9 @@ void *event_thread(void *arg) {
 
         mp_event = mpv_wait_event(g_mpv, -1.0);
 
-        if (g_event_thread_request_exit)
+        if (destroyed) {
             break;
+        }
 
         if (mp_event->event_id == MPV_EVENT_NONE)
             continue;
@@ -106,6 +107,9 @@ void *event_thread(void *arg) {
                 ALOGV("event: %s\n", mpv_event_name(mp_event->event_id));
                 env->CallStaticVoidMethod(mpv_MPVLib, mpv_MPVLib_eventEndFile, mp_event->event_id, reason);
                 break;
+            case MPV_EVENT_SHUTDOWN:
+                destroyed = true; 
+                ALOGV("Received MPV_EVENT_SHUTDOWN, Mark destroyed");
             default:
                 ALOGV("event: %s\n", mpv_event_name(mp_event->event_id));
                 env->CallStaticVoidMethod(mpv_MPVLib, mpv_MPVLib_event, mp_event->event_id, (jlong) mp_event->reply_userdata);
@@ -113,5 +117,6 @@ void *event_thread(void *arg) {
         }
     }
 
+    ALOGV("Native destroyed, event thread exited!");
     return NULL;
 }
