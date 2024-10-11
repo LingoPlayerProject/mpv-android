@@ -45,7 +45,7 @@ static int common_get_property(JNIEnv *env, jstring jproperty, mpv_format format
     const char *prop = env->GetStringUTFChars(jproperty, NULL);
     int result = mpv_get_property(g_mpv, prop, format, output);
     if (result < 0)
-        ALOGE("mpv_get_property(%s) format %d returned error %s", prop, format, mpv_error_string(result));
+        ALOGV("mpv_get_property(%s) format %d returned error %s", prop, format, mpv_error_string(result));
     env->ReleaseStringUTFChars(jproperty, prop);
 
     return result;
@@ -58,7 +58,7 @@ static int common_set_property(JNIEnv *env, jstring jproperty, mpv_format format
     const char *prop = env->GetStringUTFChars(jproperty, NULL);
     int result = mpv_set_property(g_mpv, prop, format, value);
     if (result < 0)
-        ALOGE("mpv_set_property(%s, %p) format %d returned error %s", prop, value, format, mpv_error_string(result));
+        ALOGV("mpv_set_property(%s, %p) format %d returned error %s", prop, value, format, mpv_error_string(result));
     env->ReleaseStringUTFChars(jproperty, prop);
 
     return result;
