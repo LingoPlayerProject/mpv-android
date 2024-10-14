@@ -31,6 +31,8 @@ jni_func(jint, setOptionString, jstring joption, jstring jvalue) {
     const char *value = env->GetStringUTFChars(jvalue, NULL);
 
     int result = mpv_set_option_string(g_mpv, option, value);
+    if (result < 0)
+        ALOGE("mpv_set_option_string(%s) returned error %s", option, mpv_error_string(result));
 
     env->ReleaseStringUTFChars(joption, option);
     env->ReleaseStringUTFChars(jvalue, value);
@@ -58,7 +60,7 @@ static int common_set_property(JNIEnv *env, jstring jproperty, mpv_format format
     const char *prop = env->GetStringUTFChars(jproperty, NULL);
     int result = mpv_set_property(g_mpv, prop, format, value);
     if (result < 0)
-        ALOGV("mpv_set_property(%s, %p) format %d returned error %s", prop, value, format, mpv_error_string(result));
+        ALOGE("mpv_set_property(%s, %p) format %d returned error %s", prop, value, format, mpv_error_string(result));
     env->ReleaseStringUTFChars(jproperty, prop);
 
     return result;

@@ -106,7 +106,10 @@ jni_func(void, command, jobjectArray jarray) {
     for (int i = 0; i < len; ++i)
         arguments[i] = env->GetStringUTFChars((jstring)env->GetObjectArrayElement(jarray, i), NULL);
 
-    mpv_command(g_mpv, arguments);
+    int r = mpv_command(g_mpv, arguments);
+    if (r) {
+        ALOGE("mpv_command error [%s] -> %s \n", len > 0 ? arguments[0] : "", mpv_error_string(result));
+    }
 
     for (int i = 0; i < len; ++i)
         env->ReleaseStringUTFChars((jstring)env->GetObjectArrayElement(jarray, i), arguments[i]);
