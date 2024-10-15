@@ -15,11 +15,17 @@ mpv_lib* get_mpv_lib(JNIEnv *env, jobject obj);
 void init_methods_cache(JNIEnv *env);
 JNIEnv *jni_get_env(const char *name);
 
+typedef enum mpv_jni_error {
+    MPV_ERROR_JNI_CTX_CLOSED = -1000,
+    MPV_ERROR_JNI_INIT_FAILED = -1001,
+    MPV_ERROR_JNI_CMD_LONG_ARGS = -1002,
+} mpv_jni_error;
+
 #ifndef UTIL_EXTERN
 #define UTIL_EXTERN extern
 #endif
 
-UTIL_EXTERN jclass java_Integer, java_Double, java_Boolean;
+UTIL_EXTERN jclass java_Integer, java_Double, java_Boolean, java_RuntimeException;
 UTIL_EXTERN jmethodID java_Integer_init, java_Integer_intValue, java_Double_init, java_Double_doubleValue, java_Boolean_init, java_Boolean_booleanValue;
 
 UTIL_EXTERN jclass android_graphics_Bitmap, android_graphics_Bitmap_Config;

@@ -50,46 +50,91 @@ public class MPVLib {
         return dataSourceFactory.open(uri);
     }
 
+    /**
+     * @return native handler pointer
+     */
     private native long create(Context appctx);
 
-    public native void init();
+    /**
+     * @return error code
+     */
+    public native int init();
 
-    public native void destroy();
+    /**
+     * @return error code
+     */
+    public native int destroy();
 
-    public native void attachSurface(Surface surface);
+    /**
+     * @return error code
+     */
+    public native int attachSurface(Surface surface);
 
-    public native void detachSurface();
+    /**
+     * @return error code
+     */
+    public native int detachSurface();
 
-    public native void command(@NonNull String[] cmd);
+    /**
+     * @return error code
+     */
+    public native int command(@NonNull String[] cmd);
 
+    /**
+     * @return error code
+     */
     public native int setOptionString(@NonNull String name, @NonNull String value);
 
+    /**
+     * @return error code
+     */
     public native int setOptionStringArraySingle(@NonNull String name, @NonNull String value);
 
     public native Bitmap grabThumbnail(int dimension);
 
     public native Integer getPropertyInt(@NonNull String property);
 
-    public native void setPropertyInt(@NonNull String property, @NonNull Integer value);
+    /**
+     * @return error code
+     */
+    public native int setPropertyInt(@NonNull String property, @NonNull Integer value);
 
     public native Double getPropertyDouble(@NonNull String property);
 
-    public native void setPropertyDouble(@NonNull String property, @NonNull Double value);
+    /**
+     * @return error code
+     */
+    public native int setPropertyDouble(@NonNull String property, @NonNull Double value);
 
     public native Boolean getPropertyBoolean(@NonNull String property);
 
-    public native void setPropertyBoolean(@NonNull String property, @NonNull Boolean value);
+    /**
+     * @return error code
+     */
+    public native int setPropertyBoolean(@NonNull String property, @NonNull Boolean value);
 
     public native String getPropertyString(@NonNull String property);
 
-    public native void setPropertyString(@NonNull String property, @NonNull String value);
+    /**
+     * @return error code
+     */
+    public native int setPropertyString(@NonNull String property, @NonNull String value);
 
-    public native void observeProperty(@NonNull String property, int format, long opaqueData);
+    /**
+     * @return error code
+     */
+    public native int observeProperty(@NonNull String property, int format, long opaqueData);
 
-    public native void unobserveProperty(long opaqueData);
+    /**
+     * @return error code
+     */
+    public native int unobserveProperty(long opaqueData);
 
-    public void observeProperty(@NonNull String property, int format) {
-        observeProperty(property, format, 0);
+    /**
+     * @return error code
+     */
+    public int observeProperty(@NonNull String property, int format) {
+        return observeProperty(property, format, 0);
     }
 
     private final List<EventObserver> observers = new CopyOnWriteArrayList<>();
@@ -218,4 +263,33 @@ public class MPVLib {
         public static final int MPV_END_FILE_REASON_ERROR = 4;
         public static final int MPV_END_FILE_REASON_REDIRECT = 5;
     }
+
+    public static class mpvError {
+        /* error code from libmpv */
+        public static final int MPV_ERROR_SUCCESS = 0;
+        public static final int MPV_ERROR_EVENT_QUEUE_FULL = -1;
+        public static final int MPV_ERROR_NOMEM = -2;
+        public static final int MPV_ERROR_UNINITIALIZED = -3;
+        public static final int MPV_ERROR_INVALID_PARAMETER = -4;
+        public static final int MPV_ERROR_OPTION_NOT_FOUND = -5;
+        public static final int MPV_ERROR_OPTION_FORMAT = -6;
+        public static final int MPV_ERROR_OPTION_ERROR = -7;
+        public static final int MPV_ERROR_PROPERTY_NOT_FOUND = -8;
+        public static final int MPV_ERROR_PROPERTY_FORMAT = -9;
+        public static final int MPV_ERROR_PROPERTY_UNAVAILABLE = -10;
+        public static final int MPV_ERROR_PROPERTY_ERROR = -11;
+        public static final int MPV_ERROR_COMMAND = -12;
+        public static final int MPV_ERROR_LOADING_FAILED = -13;
+        public static final int MPV_ERROR_AO_INIT_FAILED = -14;
+        public static final int MPV_ERROR_VO_INIT_FAILED = -15;
+        public static final int MPV_ERROR_NOTHING_TO_PLAY = -16;
+        public static final int MPV_ERROR_UNKNOWN_FORMAT = -17;
+        public static final int MPV_ERROR_UNSUPPORTED = -18;
+        public static final int MPV_ERROR_NOT_IMPLEMENTED = -19;
+        public static final int MPV_ERROR_GENERIC = -20;
+
+        /* error code from jni layer */
+        public static final int MPV_ERROR_JNI_CTX_CLOSED = -1000;
+    }
+
 }

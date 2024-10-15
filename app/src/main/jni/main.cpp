@@ -20,10 +20,10 @@ extern "C" {
 
 extern "C" {
     jni_func(jlong, create, jobject appctx);
-    jni_func(void, init);
-    jni_func(void, destroy);
+    jni_func(jint, init);
+    jni_func(jint, destroy);
 
-    jni_func(void, command, jobjectArray jarray);
+    jni_func(jint, command, jobjectArray jarray);
 };
 
 static void prepare_environment(JNIEnv *env, jobject appctx) {
@@ -38,8 +38,10 @@ jni_func(jlong, create, jobject appctx) {
     prepare_environment(env, appctx);
 
     mpv_handle *ctx = mpv_create();
-    if (!ctx)
-        die("context init failed");
+    if (!ctx) {
+        env->ThrowNew(java_RuntimeException, "mpv_create failed");
+        return 0;
+    }
 
     mpv_stream_cb_add_ro(ctx, "datasource", NULL, mpv_open_data_source_fn);
     jobject ref = env->NewGlobalRef(obj);
@@ -68,28 +70,28 @@ error:
     if (ctx) {
         mpv_terminate_destroy(ctx);
     }
-    die("context init failed");
-    return -1;
+    env->ThrowNew(java_RuntimeException, "mpv_create failed");
+    return 0;
 }
 
-jni_func(void, init) {
+jni_func(jint, init) {
     mpv_lib* lib = get_mpv_lib(env, obj);
-    if (!lib)
-        return;
+    if (!lib) return MPV_ERROR_JNI_CTX_CLOSED;
 
-    if (mpv_initialize(lib->ctx) < 0)
-        die("mpv init failed");
+    if (mpv_initialize(lib->ctx) < 0) {
+        return MPV_ERROR_JNI_INIT_FAILED;
+    }
 
 #ifdef __aarch64__
     ALOGV("You're using the 64-bit build of mpv!");
 #endif
+    return 0;
 }
 
-jni_func(void, destroy) {
+jni_func(jint, destroy) {
     ALOGV("mpv_lib destroy called");
     mpv_lib* lib = get_mpv_lib(env, obj);
-    if (!lib)
-        return;
+    if (!lib) return MPV_ERROR_JNI_CTX_CLOSED;
 
     env->SetLongField(obj, mpv_MPVLib_handler, (jlong) 0);
     mpv_set_wakeup_callback(lib->ctx, event_enqueue_cb, NULL); // stop new events
@@ -98,17 +100,18 @@ jni_func(void, destroy) {
     env->DeleteGlobalRef(lib->obj);
     free(lib);
     ALOGV("mpv_lib destroyed");
+    return 0;
 }
 
-jni_func(void, command, jobjectArray jarray) {
+jni_func(jint, command, jobjectArray jarray) {
     mpv_lib* lib = get_mpv_lib(env, obj);
-    if (!lib)
-        return;
+    if (!lib) return MPV_ERROR_JNI_CTX_CLOSED;
 
     const char *arguments[128] = { 0 };
     int len = env->GetArrayLength(jarray);
-    if (len >= ARRAYLEN(arguments))
-        die("Cannot run command: too many arguments");
+    if (len >= ARRAYLEN(arguments)) {
+        return MPV_ERROR_JNI_CMD_LONG_ARGS;
+    }
 
     for (int i = 0; i < len; ++i)
         arguments[i] = env->GetStringUTFChars((jstring)env->GetObjectArrayElement(jarray, i), NULL);
@@ -119,5 +122,6 @@ jni_func(void, command, jobjectArray jarray) {
 
     for (int i = 0; i < len; ++i)
         env->ReleaseStringUTFChars((jstring)env->GetObjectArrayElement(jarray, i), arguments[i]);
+    return result;
 }
 

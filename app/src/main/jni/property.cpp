@@ -12,21 +12,21 @@ extern "C" {
     jni_func(jint, setOptionStringOfArray, jstring option, jstring value);
 
     jni_func(jobject, getPropertyInt, jstring property);
-    jni_func(void, setPropertyInt, jstring property, jobject value);
+    jni_func(jint, setPropertyInt, jstring property, jobject value);
     jni_func(jobject, getPropertyDouble, jstring property);
-    jni_func(void, setPropertyDouble, jstring property, jobject value);
+    jni_func(jint, setPropertyDouble, jstring property, jobject value);
     jni_func(jobject, getPropertyBoolean, jstring property);
-    jni_func(void, setPropertyBoolean, jstring property, jobject value);
+    jni_func(jint, setPropertyBoolean, jstring property, jobject value);
     jni_func(jstring, getPropertyString, jstring jproperty);
-    jni_func(void, setPropertyString, jstring jproperty, jstring jvalue);
+    jni_func(jint, setPropertyString, jstring jproperty, jstring jvalue);
 
-    jni_func(void, observeProperty, jstring property, jint format, jlong opaque_data);
-    jni_func(void, unobserveProperty, jlong opaque_data);
+    jni_func(jint, observeProperty, jstring property, jint format, jlong opaque_data);
+    jni_func(jint, unobserveProperty, jlong opaque_data);
 }
 
 jni_func(jint, setOptionString, jstring joption, jstring jvalue) {
     mpv_lib* lib = get_mpv_lib(env, obj);
-    if (!lib) return -1;
+    if (!lib) return MPV_ERROR_JNI_CTX_CLOSED;
 
     const char *option = env->GetStringUTFChars(joption, NULL);
     const char *value = env->GetStringUTFChars(jvalue, NULL);
@@ -44,7 +44,7 @@ jni_func(jint, setOptionString, jstring joption, jstring jvalue) {
 // avoid url ':' split issue
 jni_func(jint, setOptionStringArraySingle, jstring joption, jstring jvalue) {
     mpv_lib* lib = get_mpv_lib(env, obj);
-    if (!lib) return -1;
+    if (!lib) return MPV_ERROR_JNI_CTX_CLOSED;
 
     const char *option = env->GetStringUTFChars(joption, NULL);
     char *value = (char *) env->GetStringUTFChars(jvalue, NULL);
@@ -86,7 +86,7 @@ jni_func(jint, setOptionStringArraySingle, jstring joption, jstring jvalue) {
 
 static int common_get_property(JNIEnv *env, jobject obj, jstring jproperty, mpv_format format, void *output) {
     mpv_lib* lib = get_mpv_lib(env, obj);
-    if (!lib) return -1;
+    if (!lib) return MPV_ERROR_JNI_CTX_CLOSED;
 
     const char *prop = env->GetStringUTFChars(jproperty, NULL);
     int result = mpv_get_property(lib->ctx, prop, format, output);
@@ -99,7 +99,7 @@ static int common_get_property(JNIEnv *env, jobject obj, jstring jproperty, mpv_
 
 static int common_set_property(JNIEnv *env, jobject obj, jstring jproperty, mpv_format format, void *value) {
     mpv_lib* lib = get_mpv_lib(env, obj);
-    if (!lib) return -1;
+    if (!lib) return MPV_ERROR_JNI_CTX_CLOSED;
 
     const char *prop = env->GetStringUTFChars(jproperty, NULL);
     int result = mpv_set_property(lib->ctx, prop, format, value);
@@ -140,43 +140,46 @@ jni_func(jstring, getPropertyString, jstring jproperty) {
     return jvalue;
 }
 
-jni_func(void, setPropertyInt, jstring jproperty, jobject jvalue) {
+jni_func(jint, setPropertyInt, jstring jproperty, jobject jvalue) {
     int64_t value = env->CallIntMethod(jvalue, java_Integer_intValue);
-    common_set_property(env, obj, jproperty, MPV_FORMAT_INT64, &value);
+    return common_set_property(env, obj, jproperty, MPV_FORMAT_INT64, &value);
 }
 
-jni_func(void, setPropertyDouble, jstring jproperty, jobject jvalue) {
+jni_func(jint, setPropertyDouble, jstring jproperty, jobject jvalue) {
     double value = env->CallDoubleMethod(jvalue, java_Double_doubleValue);
-    common_set_property(env, obj, jproperty, MPV_FORMAT_DOUBLE, &value);
+    return common_set_property(env, obj, jproperty, MPV_FORMAT_DOUBLE, &value);
 }
 
-jni_func(void, setPropertyBoolean, jstring jproperty, jobject jvalue) {
+jni_func(jint, setPropertyBoolean, jstring jproperty, jobject jvalue) {
     int value = env->CallBooleanMethod(jvalue, java_Boolean_booleanValue);
-    common_set_property(env, obj, jproperty, MPV_FORMAT_FLAG, &value);
+    return common_set_property(env, obj, jproperty, MPV_FORMAT_FLAG, &value);
 }
 
-jni_func(void, setPropertyString, jstring jproperty, jstring jvalue) {
+jni_func(jint, setPropertyString, jstring jproperty, jstring jvalue) {
     const char *value = env->GetStringUTFChars(jvalue, NULL);
-    common_set_property(env, obj, jproperty, MPV_FORMAT_STRING, &value);
+    int res = common_set_property(env, obj, jproperty, MPV_FORMAT_STRING, &value);
     env->ReleaseStringUTFChars(jvalue, value);
+    return res;
 }
 
-jni_func(void, observeProperty, jstring property, jint format, jlong opaque_data) {
+jni_func(jint, observeProperty, jstring property, jint format, jlong opaque_data) {
     mpv_lib* lib = get_mpv_lib(env, obj);
-    if (!lib) return;
+    if (!lib) return MPV_ERROR_JNI_CTX_CLOSED;
 
     const char *prop = env->GetStringUTFChars(property, NULL);
     int result = mpv_observe_property(lib->ctx, opaque_data, prop, (mpv_format)format);
     if (result < 0)
         ALOGE("mpv_observe_property(%s) format %d returned error %s", prop, format, mpv_error_string(result));
     env->ReleaseStringUTFChars(property, prop);
+    return result;
 }
 
-jni_func(void, unobserveProperty, jlong opaque_data) {
+jni_func(jint, unobserveProperty, jlong opaque_data) {
     mpv_lib* lib = get_mpv_lib(env, obj);
-    if (!lib) return;
+    if (!lib) return MPV_ERROR_JNI_CTX_CLOSED;
 
     int result = mpv_unobserve_property(lib->ctx, opaque_data);
     if (result <= 0)
         ALOGV("unobserveProperty has no effect!");
+    return result;
 }

@@ -105,6 +105,7 @@ void JNI_OnUnload(JavaVM* vm, void* reserved)
     env->DeleteGlobalRef(android_graphics_Bitmap_Config);
     env->DeleteGlobalRef(mpv_MPVLib);
     env->DeleteGlobalRef(mpv_MPVDataSource);
+    env->DeleteGlobalRef(java_RuntimeException);
 }
 
 mpv_lib* get_mpv_lib(JNIEnv *env, jobject jobject) {
@@ -131,6 +132,7 @@ void init_methods_cache(JNIEnv *env)
     java_Boolean = FIND_CLASS("java/lang/Boolean");
     java_Boolean_init = env->GetMethodID(java_Boolean, "<init>", "(Z)V");
     java_Boolean_booleanValue = env->GetMethodID(java_Boolean, "booleanValue", "()Z");
+    java_RuntimeException = FIND_CLASS("java/lang/RuntimeException");
 
     android_graphics_Bitmap = FIND_CLASS("android/graphics/Bitmap");
     // createBitmap(int[], int, int, android.graphics.Bitmap$Config)

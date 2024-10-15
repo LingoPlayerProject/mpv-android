@@ -278,7 +278,7 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
 
     var paused: Boolean?
         get() = mpvLib.getPropertyBoolean("pause")
-        set(paused) = mpvLib.setPropertyBoolean("pause", paused!!)
+        set(paused) { mpvLib.setPropertyBoolean("pause", paused!!) }
 
     var timePos: Double?
         get() = mpvLib.getPropertyDouble("time-pos/full")
@@ -293,15 +293,15 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
 
     var playbackSpeed: Double?
         get() = mpvLib.getPropertyDouble("speed")
-        set(speed) = mpvLib.setPropertyDouble("speed", speed!!)
+        set(speed) { mpvLib.setPropertyDouble("speed", speed!!) }
 
     var subDelay: Double?
         get() = mpvLib.getPropertyDouble("sub-delay")
-        set(speed) = mpvLib.setPropertyDouble("sub-delay", speed!!)
+        set(speed) { mpvLib.setPropertyDouble("sub-delay", speed!!) }
 
     var secondarySubDelay: Double?
         get() = mpvLib.getPropertyDouble("secondary-sub-delay")
-        set(speed) = mpvLib.setPropertyDouble("secondary-sub-delay", speed!!)
+        set(speed) { mpvLib.setPropertyDouble("secondary-sub-delay", speed!!) }
 
     val estimatedVfFps: Double?
         get() = mpvLib.getPropertyDouble("estimated-vf-fps")
