@@ -9,7 +9,7 @@
 
 extern "C" {
     jni_func(jint, setOptionString, jstring option, jstring value);
-    jni_func(jint, setOptionStringOfArray, jstring option, jstring value);
+    jni_func(jint, setOptionStringArraySingle, jstring option, jstring value);
 
     jni_func(jobject, getPropertyInt, jstring property);
     jni_func(jint, setPropertyInt, jstring property, jobject value);
