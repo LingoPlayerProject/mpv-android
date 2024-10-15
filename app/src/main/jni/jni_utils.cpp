@@ -117,6 +117,16 @@ mpv_lib* get_mpv_lib(JNIEnv *env, jobject jobject) {
     return (mpv_lib*) ((void*) r);
 }
 
+jstring SafeNewStringUTF(JNIEnv *env, const char* bytes) {
+    jstring res = env->NewStringUTF(bytes);
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        ALOGE("NewStringUTF failed for %s \n", bytes);
+        return NULL;
+    }
+    return res;
+}
+
 // Apparently it's considered slow to FindClass and GetMethodID every time we need them,
 // so let's have a nice cache here.
 

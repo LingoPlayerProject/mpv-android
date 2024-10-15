@@ -14,6 +14,7 @@ typedef struct mpv_lib {
 mpv_lib* get_mpv_lib(JNIEnv *env, jobject obj);
 void init_methods_cache(JNIEnv *env);
 JNIEnv *jni_get_env(const char *name);
+jstring SafeNewStringUTF(JNIEnv *env, const char* bytes);
 
 typedef enum mpv_jni_error {
     MPV_ERROR_JNI_CTX_CLOSED = -1000,

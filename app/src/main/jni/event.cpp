@@ -15,7 +15,7 @@ static pthread_t thread_id;
 static pthread_mutex_t lock;
 
 static void sendPropertyUpdateToJava(JNIEnv *env, jobject obj, uint64_t opaque_data, mpv_event_property *prop) {
-    jstring jprop = env->NewStringUTF(prop->name);
+    jstring jprop = SafeNewStringUTF(env, prop->name);
     jlong long_val = 0;
     jboolean bool_val = false;
     jdouble double_val = false;
@@ -34,7 +34,7 @@ static void sendPropertyUpdateToJava(JNIEnv *env, jobject obj, uint64_t opaque_d
             double_val = (jdouble) * (double *) prop->data;
             break;
         case MPV_FORMAT_STRING:
-            str_val = env->NewStringUTF(*(const char **) prop->data);
+            str_val = SafeNewStringUTF(env, *(const char **) prop->data);
             break;
         default:
             ALOGV("sendPropertyUpdateToJava: Unknown property update format received in callback: %d!",
@@ -54,21 +54,9 @@ static void sendPropertyUpdateToJava(JNIEnv *env, jobject obj, uint64_t opaque_d
         env->DeleteLocalRef(str_val);
 }
 
-
-static inline bool invalid_utf8(unsigned char c) {
-    return c == 0xc0 || c == 0xc1 || c >= 0xf5;
-}
-
 static void sendLogMessageToJava(JNIEnv *env, jobject obj, mpv_event_log_message *msg) {
-    // filter the most obvious cases of invalid utf-8
-    int invalid = 0;
-    for (int i = 0; msg->text[i]; i++)
-        invalid |= invalid_utf8((unsigned char) msg->text[i]);
-    if (invalid)
-        return;
-
-    jstring jprefix = env->NewStringUTF(msg->prefix);
-    jstring jtext = env->NewStringUTF(msg->text);
+    jstring jprefix = SafeNewStringUTF(env, msg->prefix);
+    jstring jtext = SafeNewStringUTF(env, msg->text);
 
     env->CallVoidMethod(obj, mpv_MPVLib_logMessage_SiS,
                         jprefix, (jint) msg->log_level, jtext);
@@ -113,7 +101,6 @@ static void *dispatcher_thread(void *arg) {
             pthread_mutex_unlock(&lock);
             continue;
         }
-        pthread_mutex_unlock(&lock);
 
         switch (mp_event->event_id) {
             case MPV_EVENT_LOG_MESSAGE:
@@ -140,6 +127,8 @@ static void *dispatcher_thread(void *arg) {
                                     (jlong) mp_event->reply_userdata);
                 break;
         }
+        // copy mpv_event or lock until mpv_event is not used
+        pthread_mutex_unlock(&lock);
     }
 
     ALOGV("Native destroyed, event thread exited!");

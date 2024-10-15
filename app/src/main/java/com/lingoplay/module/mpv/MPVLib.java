@@ -61,6 +61,7 @@ public class MPVLib {
     public native int init();
 
     /**
+     * Repeated call is allowed
      * @return error code
      */
     public native int destroy();
