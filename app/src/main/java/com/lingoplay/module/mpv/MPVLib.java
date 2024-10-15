@@ -64,6 +64,8 @@ public class MPVLib {
 
     public native int setOptionString(@NonNull String name, @NonNull String value);
 
+    public native int setOptionStringArraySingle(@NonNull String name, @NonNull String value);
+
     public native Bitmap grabThumbnail(int dimension);
 
     public native Integer getPropertyInt(@NonNull String property);

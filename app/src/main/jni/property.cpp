@@ -9,6 +9,7 @@
 
 extern "C" {
     jni_func(jint, setOptionString, jstring option, jstring value);
+    jni_func(jint, setOptionStringOfArray, jstring option, jstring value);
 
     jni_func(jobject, getPropertyInt, jstring property);
     jni_func(void, setPropertyInt, jstring property, jobject value);
@@ -33,6 +34,49 @@ jni_func(jint, setOptionString, jstring joption, jstring jvalue) {
     int result = mpv_set_option_string(lib->ctx, option, value);
     if (result < 0)
         ALOGE("mpv_set_option_string(%s) returned error %s", option, mpv_error_string(result));
+
+    env->ReleaseStringUTFChars(joption, option);
+    env->ReleaseStringUTFChars(jvalue, value);
+
+    return result;
+}
+
+// avoid url ':' split issue
+jni_func(jint, setOptionStringArraySingle, jstring joption, jstring jvalue) {
+    mpv_lib* lib = get_mpv_lib(env, obj);
+    if (!lib) return -1;
+
+    const char *option = env->GetStringUTFChars(joption, NULL);
+    char *value = (char *) env->GetStringUTFChars(jvalue, NULL);
+
+    // mpv_node node = {
+    //     .u.list = &(mpv_node_list) {
+    //         .num = 1,
+    //         .values = &(mpv_node) {
+    //             .u.string = value,
+    //             .format = MPV_FORMAT_STRING,
+    //         },
+    //     },
+    //     .format = MPV_FORMAT_NODE_ARRAY,
+    // };
+
+    mpv_node_list node_list;
+    mpv_node node_value;
+
+    node_value.u.string = value;
+    node_value.format = MPV_FORMAT_STRING;
+
+    node_list.num = 1;
+    node_list.values = &node_value;
+    node_list.keys = NULL;
+    
+    mpv_node node;
+    node.u.list = &node_list;
+    node.format = MPV_FORMAT_NODE_ARRAY;
+
+    int result = mpv_set_option(lib->ctx, option, MPV_FORMAT_NODE, &node);
+    if (result < 0)
+        ALOGE("mpv_set_option(%s) returned error %s", option, mpv_error_string(result));
 
     env->ReleaseStringUTFChars(joption, option);
     env->ReleaseStringUTFChars(jvalue, value);
