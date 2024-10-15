@@ -2,8 +2,6 @@ package com.lingoplay.module.mpv;
 
 // Wrapper for native library
 
-import static com.lingoplay.module.mpv.MPVLib.mpvEventId.MPV_EVENT_PLAYBACK_RESTART;
-
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.util.Log;
@@ -12,7 +10,6 @@ import android.view.Surface;
 import androidx.annotation.NonNull;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -22,6 +19,10 @@ public class MPVLib {
 
     public static final String DATA_SOURCE_SCHEME = "datasource";
 
+    private static MPVDataSource.Factory dataSourceFactory = null;
+
+    private final long handler;
+
     static {
         String[] libs = {"mpv", "player"};
         for (String lib : libs) {
@@ -29,75 +30,78 @@ public class MPVLib {
         }
     }
 
-    private static MPVDataSource.Factory DATA_SOURCE_FACTORY = null;
+    public MPVLib(Context context) {
+        handler = create(context);
+        Log.d("MPVLib", "created New MPVLib");
+    }
 
     public static void setDataSourceFactory(MPVDataSource.Factory factory) {
         Objects.requireNonNull(factory);
-        MPVLib.DATA_SOURCE_FACTORY = factory;
+        dataSourceFactory = factory;
     }
 
     /**
      * Called from native
      */
     private static MPVDataSource openDataSource(String uri) throws IOException {
-        if (DATA_SOURCE_FACTORY == null) {
+        if (dataSourceFactory == null) {
             throw new RuntimeException("Call MPVLib.setFactory first!");
         }
-        return DATA_SOURCE_FACTORY.open(uri);
+        return dataSourceFactory.open(uri);
     }
 
-    public static native void create(Context appctx);
+    private native long create(Context appctx);
 
-    public static native void init();
+    public native void init();
 
-    public static native void destroy();
+    public native void destroy();
 
-    public static native void attachSurface(Surface surface);
+    public native void attachSurface(Surface surface);
 
-    public static native void detachSurface();
+    public native void detachSurface();
 
-    public static native void command(@NonNull String[] cmd);
+    public native void command(@NonNull String[] cmd);
 
-    public static native int setOptionString(@NonNull String name, @NonNull String value);
+    public native int setOptionString(@NonNull String name, @NonNull String value);
 
-    public static native Bitmap grabThumbnail(int dimension);
+    public native Bitmap grabThumbnail(int dimension);
 
-    public static native Integer getPropertyInt(@NonNull String property);
+    public native Integer getPropertyInt(@NonNull String property);
 
-    public static native void setPropertyInt(@NonNull String property, @NonNull Integer value);
+    public native void setPropertyInt(@NonNull String property, @NonNull Integer value);
 
-    public static native Double getPropertyDouble(@NonNull String property);
+    public native Double getPropertyDouble(@NonNull String property);
 
-    public static native void setPropertyDouble(@NonNull String property, @NonNull Double value);
+    public native void setPropertyDouble(@NonNull String property, @NonNull Double value);
 
-    public static native Boolean getPropertyBoolean(@NonNull String property);
+    public native Boolean getPropertyBoolean(@NonNull String property);
 
-    public static native void setPropertyBoolean(@NonNull String property, @NonNull Boolean value);
+    public native void setPropertyBoolean(@NonNull String property, @NonNull Boolean value);
 
-    public static native String getPropertyString(@NonNull String property);
+    public native String getPropertyString(@NonNull String property);
 
-    public static native void setPropertyString(@NonNull String property, @NonNull String value);
+    public native void setPropertyString(@NonNull String property, @NonNull String value);
 
-    public static native void observeProperty(@NonNull String property, int format, long opaqueData);
+    public native void observeProperty(@NonNull String property, int format, long opaqueData);
 
-    public static native void unobserveProperty(long opaqueData);
+    public native void unobserveProperty(long opaqueData);
 
-    public static void observeProperty(@NonNull String property, int format) {
+    public void observeProperty(@NonNull String property, int format) {
         observeProperty(property, format, 0);
     }
 
-    private static final List<EventObserver> observers = new CopyOnWriteArrayList<>();
+    private final List<EventObserver> observers = new CopyOnWriteArrayList<>();
 
-    public static void addObserver(EventObserver o) {
+    public void addObserver(EventObserver o) {
         observers.add(o);
     }
 
-    public static void removeObserver(EventObserver o) {
+    public void removeObserver(EventObserver o) {
         observers.remove(o);
     }
 
     // Called from native
-    private static void eventProperty(String property, int format, long opaqueData, long longVal, boolean boolVal,
+    private void eventProperty(String property, int format, long opaqueData, long longVal, boolean boolVal,
                                       double doubleVal, String strVal) {
         for (EventObserver o : observers) {
             try {
@@ -109,7 +113,7 @@ public class MPVLib {
     }
 
     // Called from native
-    private static void event(int eventId, long opaqueData) {
+    private void event(int eventId, long opaqueData) {
         for (EventObserver o : observers) {
             try {
                 o.event(eventId, opaqueData);
@@ -120,7 +124,7 @@ public class MPVLib {
     }
 
     // Called from native
-    private static void eventEndFile(int eventId, int reason) {
+    private void eventEndFile(int eventId, int reason) {
         for (EventObserver o : observers) {
             try {
                 o.eventEndFile(eventId, reason);
@@ -130,17 +134,17 @@ public class MPVLib {
         }
     }
 
-    private static final List<LogObserver> log_observers = new CopyOnWriteArrayList<>();
+    private final List<LogObserver> log_observers = new CopyOnWriteArrayList<>();
 
-    public static void addLogObserver(LogObserver o) {
+    public void addLogObserver(LogObserver o) {
         log_observers.add(o);
     }
 
-    public static void removeLogObserver(LogObserver o) {
+    public void removeLogObserver(LogObserver o) {
         log_observers.remove(o);
     }
 
-    public static void logMessage(String prefix, int level, String text) {
+    public void logMessage(String prefix, int level, String text) {
         for (LogObserver o : log_observers) {
             o.logMessage(prefix, level, text);
         }

@@ -50,7 +50,7 @@ internal class PlaylistDialog(private val player: MPVView) {
     }
 
     fun refresh() {
-        selectedIndex = MPVLib.getPropertyInt("playlist-pos") ?: -1
+        selectedIndex = MPVLibManager.PLAY_INSTANCE.getPropertyInt("playlist-pos") ?: -1
         playlist = player.loadPlaylist()
         Log.v(TAG, "PlaylistDialog: loaded ${playlist.size} items")
         binding.list.adapter!!.notifyDataSetChanged()
@@ -123,6 +123,6 @@ internal class PlaylistDialog(private val player: MPVView) {
     }
 
     companion object {
-        private const val TAG = "mpv"
+        private const val TAG = "PlaylistDialog"
     }
 }

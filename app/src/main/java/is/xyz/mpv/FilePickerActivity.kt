@@ -363,7 +363,7 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
     }
 
     companion object {
-        private const val TAG = "mpv"
+        private const val TAG = "FilePicker"
 
         // legacy leftover
         private const val PREF_PREFIX = "MainActivity_"

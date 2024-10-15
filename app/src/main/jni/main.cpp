@@ -7,8 +7,6 @@
 
 #include <mpv/client.h>
 
-#include <pthread.h>
-
 extern "C" {
     #include <libavcodec/jni.h>
 }
@@ -21,17 +19,12 @@ extern "C" {
 #define ARRAYLEN(a) (sizeof(a)/sizeof(a[0]))
 
 extern "C" {
-    jni_func(void, create, jobject appctx);
+    jni_func(jlong, create, jobject appctx);
     jni_func(void, init);
     jni_func(void, destroy);
 
     jni_func(void, command, jobjectArray jarray);
 };
-
-mpv_handle *g_mpv;
-std::atomic<bool> destroyed(false);
-
-static pthread_t event_thread_id;
 
 static void prepare_environment(JNIEnv *env, jobject appctx) {
     setlocale(LC_NUMERIC, "C");
@@ -41,75 +34,88 @@ static void prepare_environment(JNIEnv *env, jobject appctx) {
         av_jni_set_java_vm(g_vm, NULL);
 }
 
-jni_func(void, create, jobject appctx) {
+jni_func(jlong, create, jobject appctx) {
     prepare_environment(env, appctx);
 
-    if (g_mpv)
-        die("mpv is already initialized");
-
-    g_mpv = mpv_create();
-    if (!g_mpv)
+    mpv_handle *ctx = mpv_create();
+    if (!ctx)
         die("context init failed");
 
-    mpv_stream_cb_add_ro(g_mpv, "datasource", NULL, mpv_open_data_source_fn);
+    mpv_stream_cb_add_ro(ctx, "datasource", NULL, mpv_open_data_source_fn);
+    jobject ref = env->NewGlobalRef(obj);
+    mpv_lib *lib;
+    if (ref == NULL) {
+        goto error;
+    }
+    lib = (mpv_lib *) malloc(sizeof(mpv_lib));
+    if (lib == NULL) {
+        goto error;
+    }
+    lib->ctx = ctx;
+    lib->obj = ref;
+    mpv_set_wakeup_callback(ctx, event_enqueue_cb, lib);
 
     // use terminal log level but request verbose messages
     // this way --msg-level can be used to adjust later
-    mpv_request_log_messages(g_mpv, "debug");
-    mpv_set_option_string(g_mpv, "msg-level", "all=v");
+    mpv_request_log_messages(ctx, "debug");
+    mpv_set_option_string(ctx, "msg-level", "all=v");
+
+    return (jlong) lib;
+error:
+    if (ref) {
+        env->DeleteGlobalRef(ref);
+    }
+    if (ctx) {
+        mpv_terminate_destroy(ctx);
+    }
+    die("context init failed");
+    return -1;
 }
 
 jni_func(void, init) {
-    if (!g_mpv)
-        die("mpv is not created");
+    mpv_lib* lib = get_mpv_lib(env, obj);
+    if (!lib)
+        return;
 
-    if (mpv_initialize(g_mpv) < 0)
+    if (mpv_initialize(lib->ctx) < 0)
         die("mpv init failed");
 
 #ifdef __aarch64__
     ALOGV("You're using the 64-bit build of mpv!");
 #endif
-
-    destroyed = false;
-    pthread_create(&event_thread_id, NULL, event_thread, NULL);
 }
 
 jni_func(void, destroy) {
-    if (!g_mpv)
-        die("mpv destroy called but it's already destroyed");
-    if (destroyed)
+    ALOGV("mpv_lib destroy called");
+    mpv_lib* lib = get_mpv_lib(env, obj);
+    if (!lib)
         return;
-    // poke event thread and wait for it to exit
-    destroyed = true;
-    ALOGV("Native destroy..");
-    mpv_wakeup(g_mpv);
-    int r = pthread_join(event_thread_id, NULL);
-    if (r != 0) {
-        ALOGV("pthread_join failed: %s\n", strerror(r));
-    } else {
-        ALOGV("Native destroy event_thread joined");
-    }
 
-    mpv_terminate_destroy(g_mpv);
-    g_mpv = NULL;
-    ALOGV("Native destroy mpv_handle destroyed");
+    env->SetLongField(obj, mpv_MPVLib_handler, (jlong) 0);
+    mpv_set_wakeup_callback(lib->ctx, event_enqueue_cb, NULL); // stop new events
+    destroy_events(lib); // before mpv_terminate_destroy must stop calling wait_event, or else it will crash
+    mpv_terminate_destroy(lib->ctx);
+    env->DeleteGlobalRef(lib->obj);
+    free(lib);
+    ALOGV("mpv_lib destroyed");
 }
 
 jni_func(void, command, jobjectArray jarray) {
+    mpv_lib* lib = get_mpv_lib(env, obj);
+    if (!lib)
+        return;
+
     const char *arguments[128] = { 0 };
     int len = env->GetArrayLength(jarray);
-    if (!g_mpv)
-        die("Cannot run command: mpv is not initialized");
     if (len >= ARRAYLEN(arguments))
         die("Cannot run command: too many arguments");
 
     for (int i = 0; i < len; ++i)
         arguments[i] = env->GetStringUTFChars((jstring)env->GetObjectArrayElement(jarray, i), NULL);
 
-    int r = mpv_command(g_mpv, arguments);
-    if (r) {
+    int result = mpv_command(lib->ctx, arguments);
+    if (result)
         ALOGE("mpv_command error [%s] -> %s \n", len > 0 ? arguments[0] : "", mpv_error_string(result));
-    }
 
     for (int i = 0; i < len; ++i)
         env->ReleaseStringUTFChars((jstring)env->GetObjectArrayElement(jarray, i), arguments[i]);

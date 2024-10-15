@@ -22,6 +22,7 @@ class VersionInfoDialog @JvmOverloads constructor(
 
     private lateinit var myView: View
     private lateinit var versionText: String
+    private lateinit var mpvLib: MPVLib
 
     override fun onBindDialogView(view: View) {
         super.onBindDialogView(view)
@@ -29,14 +30,14 @@ class VersionInfoDialog @JvmOverloads constructor(
 
         versionText = "mpv-android ${BuildConfig.VERSION_NAME} / ${BuildConfig.VERSION_CODE} (${BuildConfig.BUILD_TYPE})\n"
         /* create mpv context to capture version info from log */
-        MPVLib.create(context)
-        MPVLib.addLogObserver(this)
-        MPVLib.init()
+        mpvLib = MPVLib(context)
+        mpvLib.addLogObserver(this)
+        mpvLib.init()
     }
 
     override fun onDialogClosed(positiveResult: Boolean) {
         super.onDialogClosed(positiveResult)
-        MPVLib.destroy()
+        mpvLib.destroy()
     }
 
     override fun logMessage(prefix: String, level: Int, text: String) {
@@ -46,7 +47,7 @@ class VersionInfoDialog @JvmOverloads constructor(
             versionText += text
         if (text.startsWith("List of enabled features:")) {
             /* stop receiving log messages and populate text field */
-            MPVLib.removeLogObserver(this)
+            mpvLib.removeLogObserver(this)
             val field = myView.findViewById<TextView>(R.id.info)
             (context as SettingsActivity).runOnUiThread {
                 field.text = versionText

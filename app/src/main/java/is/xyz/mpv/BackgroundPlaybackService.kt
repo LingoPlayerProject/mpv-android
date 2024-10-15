@@ -32,8 +32,11 @@ import com.lingoplay.module.mpv.MPVLib.mpvFormat.MPV_FORMAT_STRING
 */
 
 class BackgroundPlaybackService : Service(), MPVLib.EventObserver {
+    lateinit var mpvLib: MPVLib
+
     override fun onCreate() {
-        MPVLib.addObserver(this)
+        MPVLibManager.PLAY_INSTANCE
+        mpvLib.addObserver(this)
     }
 
     private var cachedMetadata = Utils.AudioMetadata()
@@ -114,8 +117,8 @@ class BackgroundPlaybackService : Service(), MPVLib.EventObserver {
         // read some metadata
 
         cachedMetadata.readAll()
-        paused = MPVLib.getPropertyBoolean("pause")
-        shouldShowPrevNext = MPVLib.getPropertyInt("playlist-count") ?: 0 > 1
+        paused = mpvLib.getPropertyBoolean("pause")
+        shouldShowPrevNext = mpvLib.getPropertyInt("playlist-count") ?: 0 > 1
 
         // create notification and turn this into a "foreground service"
 
@@ -131,7 +134,7 @@ class BackgroundPlaybackService : Service(), MPVLib.EventObserver {
     }
 
     override fun onDestroy() {
-        MPVLib.removeObserver(this)
+        mpvLib.removeObserver(this)
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.cancel(NOTIFICATION_ID)
@@ -204,6 +207,6 @@ class BackgroundPlaybackService : Service(), MPVLib.EventObserver {
             })
         }
 
-        private const val TAG = "mpv"
+        private const val TAG = "BackgroundPlaybackService"
     }
 }

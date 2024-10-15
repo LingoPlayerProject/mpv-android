@@ -1,6 +1,7 @@
 #define UTIL_EXTERN
 #include "jni_utils.h"
 #include "log.h"
+#include "event.h"
 
 #include <jni.h>
 #include <stdlib.h>
@@ -81,11 +82,15 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 
     init_methods_cache(env);
 
+    start_event_thread();
+
     return VLC_JNI_VERSION;
 }
 
 void JNI_OnUnload(JavaVM* vm, void* reserved)
 {
+    stop_event_thread();
+
     pthread_key_delete(jni_env_key);
 
     JNIEnv* env = NULL;
@@ -100,6 +105,15 @@ void JNI_OnUnload(JavaVM* vm, void* reserved)
     env->DeleteGlobalRef(android_graphics_Bitmap_Config);
     env->DeleteGlobalRef(mpv_MPVLib);
     env->DeleteGlobalRef(mpv_MPVDataSource);
+}
+
+mpv_lib* get_mpv_lib(JNIEnv *env, jobject jobject) {
+    jlong r = env->GetLongField(jobject, mpv_MPVLib_handler);
+    if (r == 0) {
+        ALOGE("MPVLib is destroyed");
+        return NULL;
+    }
+    return (mpv_lib*) ((void*) r);
 }
 
 // Apparently it's considered slow to FindClass and GetMethodID every time we need them,
@@ -126,10 +140,11 @@ void init_methods_cache(JNIEnv *env)
     android_graphics_Bitmap_Config_ARGB_8888 = env->GetStaticFieldID(android_graphics_Bitmap_Config, "ARGB_8888", "Landroid/graphics/Bitmap$Config;");
 
     mpv_MPVLib = FIND_CLASS("com/lingoplay/module/mpv/MPVLib");
-    mpv_MPVLib_event  = env->GetStaticMethodID(mpv_MPVLib, "event", "(IJ)V");
-    mpv_MPVLib_eventEndFile  = env->GetStaticMethodID(mpv_MPVLib, "eventEndFile", "(II)V");
-    mpv_MPVLib_eventProperty  = env->GetStaticMethodID(mpv_MPVLib, "eventProperty", "(Ljava/lang/String;IJJZDLjava/lang/String;)V");
-    mpv_MPVLib_logMessage_SiS = env->GetStaticMethodID(mpv_MPVLib, "logMessage", "(Ljava/lang/String;ILjava/lang/String;)V"); // logMessage(String, int, String)
+    mpv_MPVLib_handler = env->GetFieldID(mpv_MPVLib, "handler", "J");
+    mpv_MPVLib_event  = env->GetMethodID(mpv_MPVLib, "event", "(IJ)V");
+    mpv_MPVLib_eventEndFile  = env->GetMethodID(mpv_MPVLib, "eventEndFile", "(II)V");
+    mpv_MPVLib_eventProperty  = env->GetMethodID(mpv_MPVLib, "eventProperty", "(Ljava/lang/String;IJJZDLjava/lang/String;)V");
+    mpv_MPVLib_logMessage_SiS = env->GetMethodID(mpv_MPVLib, "logMessage", "(Ljava/lang/String;ILjava/lang/String;)V"); // logMessage(String, int, String)
     mpv_MPVLib_openDataSource = env->GetStaticMethodID(mpv_MPVLib, "openDataSource", "(Ljava/lang/String;)Lcom/lingoplay/module/mpv/MPVDataSource;");
 
     mpv_MPVDataSource = FIND_CLASS("com/lingoplay/module/mpv/MPVDataSource");

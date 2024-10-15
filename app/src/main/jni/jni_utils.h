@@ -1,10 +1,17 @@
 #pragma once
 
 #include <jni.h>
+#include <mpv/client.h>
 
 #define jni_func_name(name) Java_com_lingoplay_module_mpv_MPVLib_##name
 #define jni_func(return_type, name, ...) JNIEXPORT return_type JNICALL jni_func_name(name) (JNIEnv *env, jobject obj, ##__VA_ARGS__)
 
+typedef struct mpv_lib {
+    mpv_handle* ctx;
+    jobject obj;
+} mpv_lib;
+
+mpv_lib* get_mpv_lib(JNIEnv *env, jobject obj);
 void init_methods_cache(JNIEnv *env);
 JNIEnv *jni_get_env(const char *name);
 
@@ -21,6 +28,7 @@ UTIL_EXTERN jfieldID android_graphics_Bitmap_Config_ARGB_8888;
 
 UTIL_EXTERN jclass mpv_MPVLib;
 UTIL_EXTERN jclass mpv_MPVDataSource;
+UTIL_EXTERN jfieldID mpv_MPVLib_handler;
 UTIL_EXTERN jmethodID mpv_MPVLib_eventProperty,
 	mpv_MPVLib_event,
     mpv_MPVLib_eventEndFile,

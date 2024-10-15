@@ -15,9 +15,9 @@ class NotificationButtonReceiver : BroadcastReceiver() {
         Log.v(TAG, "NotificationButtonReceiver: ${intent!!.action}")
         // remember to update AndroidManifest.xml too when adding here
         when (intent.action) {
-            "$PREFIX.PLAY_PAUSE" -> MPVLib.command(arrayOf("cycle", "pause"))
-            "$PREFIX.ACTION_PREV" -> MPVLib.command(arrayOf("playlist-prev"))
-            "$PREFIX.ACTION_NEXT" -> MPVLib.command(arrayOf("playlist-next"))
+            "$PREFIX.PLAY_PAUSE" -> MPVLibManager.PLAY_INSTANCE.command(arrayOf("cycle", "pause"))
+            "$PREFIX.ACTION_PREV" -> MPVLibManager.PLAY_INSTANCE.command(arrayOf("playlist-prev"))
+            "$PREFIX.ACTION_NEXT" -> MPVLibManager.PLAY_INSTANCE.command(arrayOf("playlist-next"))
         }
     }
 
@@ -33,7 +33,7 @@ class NotificationButtonReceiver : BroadcastReceiver() {
                 PendingIntent.getBroadcast(context, 0, intent, 0)
         }
 
-        private const val TAG = "mpv"
+        private const val TAG = "NotificationButtonReceiver"
         private const val PREFIX = "is.xyz.mpv"
     }
 }

@@ -18,6 +18,9 @@ extern "C" {
 };
 
 jni_func(jobject, grabThumbnail, jint dimension) {
+    mpv_lib* lib = get_mpv_lib(env, obj);
+    if (!lib) return NULL;
+
     ALOGV("grabbing thumbnail\n");
 
     mpv_node result;
@@ -35,7 +38,7 @@ jni_func(jobject, grabThumbnail, jint dimension) {
         c_array.values = c_args;
         c.format = MPV_FORMAT_NODE_ARRAY;
         c.u.list = &c_array;
-        if (mpv_command_node(g_mpv, &c, &result) < 0)
+        if (mpv_command_node(lib->ctx, &c, &result) < 0)
             return NULL;
     }
 

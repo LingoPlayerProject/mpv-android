@@ -203,7 +203,7 @@ class MainScreenFragment : Fragment(R.layout.fragment_main_screen) {
     }
 
     companion object {
-        private const val TAG = "mpv"
+        private const val TAG = "MainScreenFragment"
 
         // list of debug or testing activities that can be launched
         private val DEBUG_ACTIVITIES = arrayOf(

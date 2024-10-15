@@ -5,9 +5,16 @@
 #include "globals.h"
 #include "jni_utils.h"
 #include "log.h"
+#include "blocking_queue.h"
+#include <pthread.h>
+
 #define MPV_EVENT_THREAD "mpv-event"
 
-static void sendPropertyUpdateToJava(JNIEnv *env, uint64_t opaque_data, mpv_event_property *prop) {
+static blocking_queue_t *queue;
+static pthread_t thread_id;
+static pthread_mutex_t lock;
+
+static void sendPropertyUpdateToJava(JNIEnv *env, jobject obj, uint64_t opaque_data, mpv_event_property *prop) {
     jstring jprop = env->NewStringUTF(prop->name);
     jlong long_val = 0;
     jboolean bool_val = false;
@@ -34,9 +41,9 @@ static void sendPropertyUpdateToJava(JNIEnv *env, uint64_t opaque_data, mpv_even
                   prop->format);
             break;
     }
-    env->CallStaticVoidMethod(mpv_MPVLib, mpv_MPVLib_eventProperty, jprop,
-                              (jint) prop->format, (jlong) opaque_data,
-                              long_val, bool_val, double_val, str_val);
+    env->CallVoidMethod(obj, mpv_MPVLib_eventProperty, jprop,
+                        (jint) prop->format, (jlong) opaque_data,
+                        long_val, bool_val, double_val, str_val);
     if (env->ExceptionCheck()) {
         ALOGE("callback eventProperty '%s' got exception! \n", prop->name);
         env->ExceptionClear();
@@ -52,7 +59,7 @@ static inline bool invalid_utf8(unsigned char c) {
     return c == 0xc0 || c == 0xc1 || c >= 0xf5;
 }
 
-static void sendLogMessageToJava(JNIEnv *env, mpv_event_log_message *msg) {
+static void sendLogMessageToJava(JNIEnv *env, jobject obj, mpv_event_log_message *msg) {
     // filter the most obvious cases of invalid utf-8
     int invalid = 0;
     for (int i = 0; msg->text[i]; i++)
@@ -63,8 +70,8 @@ static void sendLogMessageToJava(JNIEnv *env, mpv_event_log_message *msg) {
     jstring jprefix = env->NewStringUTF(msg->prefix);
     jstring jtext = env->NewStringUTF(msg->text);
 
-    env->CallStaticVoidMethod(mpv_MPVLib, mpv_MPVLib_logMessage_SiS,
-                              jprefix, (jint) msg->log_level, jtext);
+    env->CallVoidMethod(obj, mpv_MPVLib_logMessage_SiS,
+                        jprefix, (jint) msg->log_level, jtext);
 
     if (jprefix)
         env->DeleteLocalRef(jprefix);
@@ -72,51 +79,111 @@ static void sendLogMessageToJava(JNIEnv *env, mpv_event_log_message *msg) {
         env->DeleteLocalRef(jtext);
 }
 
-void *event_thread(void *arg) {
+static void *dispatcher_thread(void *arg) {
     JNIEnv *env = jni_get_env(MPV_EVENT_THREAD);
     if (!env)
         die("failed to acquire java env");
 
     while (1) {
+        blocking_queue_optional_data res = blocking_queue_peek(queue, true);
+        if (!res.has_data)
+            continue;
+
+        pthread_mutex_lock(&lock);
+        res = blocking_queue_peek(queue, true);
+        if (!res.has_data) {
+            pthread_mutex_unlock(&lock);
+            continue;
+        }
+        if (res.data == NULL) {
+            blocking_queue_pop(queue);
+            pthread_mutex_unlock(&lock);
+            continue;
+        }
         mpv_event *mp_event;
         mpv_event_property *mp_property = NULL;
         mpv_event_log_message *msg = NULL;
-
-        mp_event = mpv_wait_event(g_mpv, -1.0);
-
-        if (destroyed) {
-            break;
-        }
-
-        if (mp_event->event_id == MPV_EVENT_NONE)
+        mpv_lib *lib = (mpv_lib *) res.data;
+        jobject obj = lib->obj;
+        mp_event = mpv_wait_event(lib->ctx, 0);
+        if (mp_event->event_id == MPV_EVENT_NONE) {
+            blocking_queue_pop(queue);
+            pthread_mutex_unlock(&lock);
             continue;
+        }
+        pthread_mutex_unlock(&lock);
 
         switch (mp_event->event_id) {
             case MPV_EVENT_LOG_MESSAGE:
-                msg = (mpv_event_log_message*)mp_event->data;
+                msg = (mpv_event_log_message *) mp_event->data;
                 ALOGV("[%s:%s] %s", msg->prefix, msg->level, msg->text);
-                sendLogMessageToJava(env, msg);
+                sendLogMessageToJava(env, obj, msg);
                 break;
             case MPV_EVENT_PROPERTY_CHANGE:
-                mp_property = (mpv_event_property*)mp_event->data;
-                sendPropertyUpdateToJava(env, mp_event->reply_userdata, mp_property);
+                mp_property = (mpv_event_property *) mp_event->data;
+                sendPropertyUpdateToJava(env, obj, mp_event->reply_userdata, mp_property);
                 break;
             case MPV_EVENT_END_FILE:
                 jint reason;
-                reason = (jint) ((mpv_event_end_file*)mp_event->data)->reason;
+                reason = (jint)((mpv_event_end_file *) mp_event->data)->reason;
                 ALOGV("event: %s\n", mpv_event_name(mp_event->event_id));
-                env->CallStaticVoidMethod(mpv_MPVLib, mpv_MPVLib_eventEndFile, mp_event->event_id, reason);
+                env->CallVoidMethod(obj, mpv_MPVLib_eventEndFile, mp_event->event_id,
+                                    reason);
                 break;
             case MPV_EVENT_SHUTDOWN:
-                destroyed = true; 
-                ALOGV("Received MPV_EVENT_SHUTDOWN, Mark destroyed");
+                ALOGV("Received MPV_EVENT_SHUTDOWN ");
             default:
                 ALOGV("event: %s\n", mpv_event_name(mp_event->event_id));
-                env->CallStaticVoidMethod(mpv_MPVLib, mpv_MPVLib_event, mp_event->event_id, (jlong) mp_event->reply_userdata);
+                env->CallVoidMethod(obj, mpv_MPVLib_event, mp_event->event_id,
+                                    (jlong) mp_event->reply_userdata);
                 break;
         }
     }
 
     ALOGV("Native destroyed, event thread exited!");
     return NULL;
+}
+
+void destroy_events(mpv_lib *lib) {
+    pthread_mutex_lock(&lock);
+    blocking_queue_replace_to_null(queue, lib);
+    pthread_mutex_unlock(&lock);
+}
+
+void event_enqueue_cb(void *d) {
+    if (!d) return;
+
+    if (blocking_queue_size(queue) > 1000) {
+        ALOGE("too many queued events");
+        return;
+    }
+    if (blocking_queue_push(queue, d)) {
+        ALOGE("blocking_queue_push failed");
+    }
+}
+
+/**
+ * Called when JNILoad. The callback in mpv_set_wakeup_callback is not allowed to do
+ * anything, including mpv_wait_event, so we need a dispatcher thread.
+ */
+void start_event_thread() {
+    queue = blocking_queue_create();
+    if (queue == NULL) {
+        ALOGE("start_event_thread init failed");
+        return;
+    }
+    if(pthread_create(&thread_id, NULL, dispatcher_thread, NULL)) {
+        ALOGE("start_event_thread pthread_create failed");
+        return;
+    }
+    pthread_mutex_init(&lock, NULL);
+    ALOGV("event thread started");
+}
+
+/**
+ * Called when JNIUnload, seems never happen.
+ * Even if it happens, there is no need to stop eventThread,
+ * as long as you do not use the destroyed mpv_handler
+ */
+void stop_event_thread() {
 }

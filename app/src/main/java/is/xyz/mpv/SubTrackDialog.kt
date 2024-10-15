@@ -122,7 +122,7 @@ internal class SubTrackDialog(private val player: MPVView) {
     }
 
     companion object {
-        private const val TAG = "mpv"
+        private const val TAG = "SubTrackDialog"
         const val TRACK_TYPE = "sub"
     }
 }

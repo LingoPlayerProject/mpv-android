@@ -11,6 +11,8 @@ import com.lingoplay.module.mpv.MPVLib
 // Contains only the essential code needed to get a picture on the screen
 
 abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(context, attrs), SurfaceHolder.Callback {
+    lateinit var mpvLib: MPVLib
+
     /**
      * Initialize libmpv.
      *
@@ -18,25 +20,25 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
      */
     fun initialize(configDir: String, cacheDir: String) {
         MPVLib.setDataSourceFactory(FileMPVDataSource.Factory())
-        MPVLib.create(context)
+        mpvLib = MPVLib(context)
 
         /* set normal options (user-supplied config can override) */
-        MPVLib.setOptionString("config", "yes")
-        MPVLib.setOptionString("config-dir", configDir)
+        mpvLib.setOptionString("config", "yes")
+        mpvLib.setOptionString("config-dir", configDir)
         for (opt in arrayOf("gpu-shader-cache-dir", "icc-cache-dir"))
-            MPVLib.setOptionString(opt, cacheDir)
+            mpvLib.setOptionString(opt, cacheDir)
         initOptions()
 
-        MPVLib.init()
+        mpvLib.init()
 
         /* set hardcoded options */
         postInitOptions()
         // would crash before the surface is attached
-        MPVLib.setOptionString("force-window", "no")
+        mpvLib.setOptionString("force-window", "no")
         // need to idle at least once for playFile() logic to work
-        MPVLib.setOptionString("idle", "once")
+        mpvLib.setOptionString("idle", "once")
 
-        MPVLib.setOptionString("seekbarkeyframes", "no")
+        mpvLib.setOptionString("seekbarkeyframes", "no")
 
         holder.addCallback(this)
         observeProperties()
@@ -50,8 +52,8 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
     fun destroy() {
         // Disable surface callbacks to avoid using unintialized mpv state
         holder.removeCallback(this)
-
-        MPVLib.destroy()
+        Log.d("MPVView", "mpvLib.destroy")
+        mpvLib.destroy()
     }
 
     protected abstract fun initOptions()
@@ -76,40 +78,40 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
      */
     fun setVo(vo: String) {
         voInUse = vo
-        MPVLib.setOptionString("vo", vo)
+        mpvLib.setOptionString("vo", vo)
     }
 
     // Surface callbacks
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-        MPVLib.setPropertyString("android-surface-size", "${width}x$height")
+        mpvLib.setPropertyString("android-surface-size", "${width}x$height")
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
         Log.w(TAG, "attaching surface")
-        MPVLib.attachSurface(holder.surface)
+        mpvLib.attachSurface(holder.surface)
         // This forces mpv to render subs/osd/whatever into our surface even if it would ordinarily not
-        MPVLib.setOptionString("force-window", "yes")
+        mpvLib.setOptionString("force-window", "yes")
 
         if (filePath != null) {
-            MPVLib.command(arrayOf("loadfile", "datasource://" + (filePath as String)))
-//            MPVLib.command(arrayOf("loadfile", filePath as String))
+            mpvLib.command(arrayOf("loadfile", "datasource://" + (filePath as String)))
+//            mpvLib.command(arrayOf("loadfile", filePath as String))
             filePath = null
         } else {
             // We disable video output when the context disappears, enable it back
-            MPVLib.setPropertyString("vo", voInUse)
+            mpvLib.setPropertyString("vo", voInUse)
         }
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
         Log.w(TAG, "detaching surface")
-        MPVLib.setPropertyString("vo", "null")
-        MPVLib.setOptionString("force-window", "no")
-        MPVLib.detachSurface()
+        mpvLib.setPropertyString("vo", "null")
+        mpvLib.setOptionString("force-window", "no")
+        mpvLib.detachSurface()
         // FIXME: race condition here because detachSurface just sets a property and that is async
     }
 
     companion object {
-        private const val TAG = "mpv"
+        private const val TAG = "BaseMPVView"
     }
 }

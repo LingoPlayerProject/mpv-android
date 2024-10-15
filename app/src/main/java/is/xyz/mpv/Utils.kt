@@ -204,7 +204,7 @@ internal object Utils {
             private set
 
         fun readAll() {
-            mediaTitle = MPVLib.getPropertyString("media-title")
+            mediaTitle = MPVLibManager.PLAY_INSTANCE.getPropertyString("media-title")
             update("metadata") // read artist & album
         }
 
@@ -214,8 +214,8 @@ internal object Utils {
             if (property == "metadata") {
                 // If we observe individual keys libmpv won't notify us once they become
                 // unavailable, so we observe "metadata" and read both keys on trigger.
-                mediaArtist = MPVLib.getPropertyString("metadata/by-key/Artist")
-                mediaAlbum = MPVLib.getPropertyString("metadata/by-key/Album")
+                mediaArtist = MPVLibManager.PLAY_INSTANCE.getPropertyString("metadata/by-key/Artist")
+                mediaAlbum = MPVLibManager.PLAY_INSTANCE.getPropertyString("metadata/by-key/Album")
                 return true
             }
             return false
@@ -440,7 +440,7 @@ internal object Utils {
         return context.resources.configuration.screenLayout and Configuration.SCREENLAYOUT_SIZE_MASK >= Configuration.SCREENLAYOUT_SIZE_XLARGE
     }
 
-    private const val TAG = "mpv"
+    private const val TAG = "Utils"
 
     // This is used to filter files in the file picker, so it contains just about everything
     // FFmpeg/mpv could possibly read
