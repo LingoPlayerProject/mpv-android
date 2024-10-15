@@ -21,7 +21,7 @@ extern "C" {
 extern "C" {
     jni_func(jlong, create, jobject appctx);
     jni_func(jint, init);
-    jni_func(jint, destroy);
+    jni_func(jint, destroyNative);
 
     jni_func(jint, command, jobjectArray jarray);
 };
@@ -88,7 +88,7 @@ jni_func(jint, init) {
     return 0;
 }
 
-jni_func(jint, destroy) {
+jni_func(jint, destroyNative) {
     ALOGV("mpv_lib destroy called");
     mpv_lib* lib = get_mpv_lib(env, obj);
     if (!lib) return MPV_ERROR_JNI_CTX_CLOSED;

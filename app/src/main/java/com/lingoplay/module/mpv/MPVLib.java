@@ -13,11 +13,15 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @SuppressWarnings("unused")
 public class MPVLib {
+    public static final String TAG = "MPVLib";
 
     public static final String DATA_SOURCE_SCHEME = "datasource";
+
+    private static final AtomicInteger COUNTER = new AtomicInteger(0);
 
     private static MPVDataSource.Factory dataSourceFactory = null;
 
@@ -32,7 +36,8 @@ public class MPVLib {
 
     public MPVLib(Context context) {
         handler = create(context);
-        Log.d("MPVLib", "created New MPVLib");
+        COUNTER.incrementAndGet();
+        Log.d(TAG, "created New MPVLib, current count:" + COUNTER.get());
     }
 
     public static void setDataSourceFactory(MPVDataSource.Factory factory) {
@@ -64,7 +69,13 @@ public class MPVLib {
      * Repeated call is allowed
      * @return error code
      */
-    public native int destroy();
+    private native int destroyNative();
+
+    public void destroy() {
+        COUNTER.decrementAndGet();
+        Log.d(TAG, "destroy lib instance, current count:" + COUNTER.get());
+        destroyNative();
+    }
 
     /**
      * @return error code
