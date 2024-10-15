@@ -203,12 +203,13 @@ void mpv_data_source_cb_cancel_fn(void *cookie) {
     }
     jobject source = (jobject) cookie;
 
-    env->CallVoidMethod(source, mpv_MPVDataSource_cancel);
-    if (env->ExceptionCheck()) {
-        ALOGE("DataSource cancel with exception");
-        env->ExceptionDescribe();
-        env->ExceptionClear();
-    }
+    // seems there are bugs in mpv that call cancel after close
+    // env->CallVoidMethod(source, mpv_MPVDataSource_cancel);
+    // if (env->ExceptionCheck()) {
+    //     ALOGE("DataSource cancel with exception");
+    //     env->ExceptionDescribe();
+    //     env->ExceptionClear();
+    // }
 }
 
 /**
