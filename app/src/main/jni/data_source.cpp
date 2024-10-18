@@ -58,7 +58,7 @@ int64_t mpv_data_source_cb_read_fn(void *cookie, char *buf, uint64_t nbytes) {
             break;
         }
         if (read_size == 0) {
-            ALOGV("DataSource read EOF");
+            //ALOGV("DataSource read EOF");
             break;
         }
         elements = env->GetByteArrayElements(array, 0);

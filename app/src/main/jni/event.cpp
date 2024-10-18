@@ -115,14 +115,12 @@ static void *dispatcher_thread(void *arg) {
             case MPV_EVENT_END_FILE:
                 jint reason;
                 reason = (jint)((mpv_event_end_file *) mp_event->data)->reason;
-                ALOGV("event: %s\n", mpv_event_name(mp_event->event_id));
+                //ALOGV("event: %s\n", mpv_event_name(mp_event->event_id));
                 env->CallVoidMethod(obj, mpv_MPVLib_eventEndFile, mp_event->event_id,
                                     reason);
                 break;
-            case MPV_EVENT_SHUTDOWN:
-                ALOGV("Received MPV_EVENT_SHUTDOWN ");
             default:
-                ALOGV("event: %s\n", mpv_event_name(mp_event->event_id));
+                //ALOGV("event: %s\n", mpv_event_name(mp_event->event_id));
                 env->CallVoidMethod(obj, mpv_MPVLib_event, mp_event->event_id,
                                     (jlong) mp_event->reply_userdata);
                 break;

@@ -56,10 +56,10 @@ jni_func(jlong, create, jobject appctx) {
     lib->ctx = ctx;
     lib->obj = ref;
     mpv_set_wakeup_callback(ctx, event_enqueue_cb, lib);
-
+    
     // use terminal log level but request verbose messages
     // this way --msg-level can be used to adjust later
-    mpv_request_log_messages(ctx, "debug");
+    mpv_request_log_messages(ctx, "terminal-default");
     mpv_set_option_string(ctx, "msg-level", "all=v");
 
     return (jlong) lib;
@@ -83,23 +83,22 @@ jni_func(jint, init) {
     }
 
 #ifdef __aarch64__
-    ALOGV("You're using the 64-bit build of mpv!");
+    //ALOGV("You're using the 64-bit build of mpv!");
 #endif
     return 0;
 }
 
 jni_func(jint, destroyNative) {
-    ALOGV("mpv_lib destroy called");
     mpv_lib* lib = get_mpv_lib(env, obj);
     if (!lib) return MPV_ERROR_JNI_CTX_CLOSED;
-
+    
     env->SetLongField(obj, mpv_MPVLib_handler, (jlong) 0);
     mpv_set_wakeup_callback(lib->ctx, event_enqueue_cb, NULL); // stop new events
-    destroy_events(lib); // before mpv_terminate_destroy must stop calling wait_event, or else it will crash
-    mpv_terminate_destroy(lib->ctx);
+        destroy_events(lib); // before mpv_terminate_destroy must stop calling wait_event, or else it will crash
+        mpv_terminate_destroy(lib->ctx);
     env->DeleteGlobalRef(lib->obj);
     free(lib);
-    ALOGV("mpv_lib destroyed");
+    ALOGV("mpv_lib native destroyed \n");
     return 0;
 }
 
