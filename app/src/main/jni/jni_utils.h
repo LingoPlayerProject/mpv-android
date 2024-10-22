@@ -44,6 +44,5 @@ UTIL_EXTERN jmethodID mpv_MPVLib_eventProperty,
 	mpv_MPVDataSource_size,
 	mpv_MPVDataSource_read,
 	mpv_MPVDataSource_seek,
-	mpv_MPVDataSource_cancel,
 	mpv_MPVDataSource_close
     ;

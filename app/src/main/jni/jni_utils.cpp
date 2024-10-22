@@ -157,13 +157,12 @@ void init_methods_cache(JNIEnv *env)
     mpv_MPVLib_eventEndFile  = env->GetMethodID(mpv_MPVLib, "eventEndFile", "(II)V");
     mpv_MPVLib_eventProperty  = env->GetMethodID(mpv_MPVLib, "eventProperty", "(Ljava/lang/String;IJJZDLjava/lang/String;)V");
     mpv_MPVLib_logMessage_SiS = env->GetMethodID(mpv_MPVLib, "logMessage", "(Ljava/lang/String;ILjava/lang/String;)V"); // logMessage(String, int, String)
-    mpv_MPVLib_openDataSource = env->GetStaticMethodID(mpv_MPVLib, "openDataSource", "(Ljava/lang/String;)Lcom/lingoplay/module/mpv/MPVDataSource;");
+    mpv_MPVLib_openDataSource = env->GetMethodID(mpv_MPVLib, "openDataSource", "(Ljava/lang/String;)Lcom/lingoplay/module/mpv/MPVDataSource;");
 
     mpv_MPVDataSource = FIND_CLASS("com/lingoplay/module/mpv/MPVDataSource");
     mpv_MPVDataSource_size  = env->GetMethodID(mpv_MPVDataSource, "size", "()J");
     mpv_MPVDataSource_read  = env->GetMethodID(mpv_MPVDataSource, "read", "([BI)I");
     mpv_MPVDataSource_seek  = env->GetMethodID(mpv_MPVDataSource, "seek", "(J)V");
-    mpv_MPVDataSource_cancel  = env->GetMethodID(mpv_MPVDataSource, "cancel", "()V");
     mpv_MPVDataSource_close  = env->GetMethodID(mpv_MPVDataSource, "close", "()V");
 #undef FIND_CLASS
 

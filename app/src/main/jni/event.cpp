@@ -135,6 +135,8 @@ static void *dispatcher_thread(void *arg) {
 
 void destroy_events(mpv_lib *lib) {
     pthread_mutex_lock(&lock);
+    // Since the mpv-lib pointer becomes invalid after close, it is not possible to
+    // mark the close on the queue element, and only the element can be removed
     blocking_queue_replace_to_null(queue, lib);
     pthread_mutex_unlock(&lock);
 }

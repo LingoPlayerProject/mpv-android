@@ -5,7 +5,11 @@ import java.io.IOException;
 public interface MPVDataSource {
 
     interface Factory {
-        MPVDataSource open(String uri) throws IOException;
+        MPVDataSource open(String uri, CloseCallback closeCallback) throws IOException;
+    }
+
+    interface CloseCallback {
+        void onClose(MPVDataSource ds);
     }
 
     /**

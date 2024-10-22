@@ -4,7 +4,7 @@
 #include <time.h>
 #include <locale.h>
 #include <atomic>
-
+#include <inttypes.h>
 #include <mpv/client.h>
 
 extern "C" {
@@ -43,12 +43,12 @@ jni_func(jlong, create, jobject appctx) {
         return 0;
     }
 
-    mpv_stream_cb_add_ro(ctx, "datasource", NULL, mpv_open_data_source_fn);
     jobject ref = env->NewGlobalRef(obj);
     mpv_lib *lib;
     if (ref == NULL) {
         goto error;
     }
+
     lib = (mpv_lib *) malloc(sizeof(mpv_lib));
     if (lib == NULL) {
         goto error;
@@ -56,7 +56,8 @@ jni_func(jlong, create, jobject appctx) {
     lib->ctx = ctx;
     lib->obj = ref;
     mpv_set_wakeup_callback(ctx, event_enqueue_cb, lib);
-    
+    mpv_stream_cb_add_ro(ctx, "datasource", ref, mpv_open_data_source_fn);
+
     // use terminal log level but request verbose messages
     // this way --msg-level can be used to adjust later
     mpv_request_log_messages(ctx, "terminal-default");
@@ -92,13 +93,15 @@ jni_func(jint, destroyNative) {
     mpv_lib* lib = get_mpv_lib(env, obj);
     if (!lib) return MPV_ERROR_JNI_CTX_CLOSED;
     
+    int64_t handle = (int64_t) lib;
+    ALOGV("mpv_lib native destroy... handle %" PRId64, handle);
     env->SetLongField(obj, mpv_MPVLib_handler, (jlong) 0);
     mpv_set_wakeup_callback(lib->ctx, event_enqueue_cb, NULL); // stop new events
         destroy_events(lib); // before mpv_terminate_destroy must stop calling wait_event, or else it will crash
         mpv_terminate_destroy(lib->ctx);
     env->DeleteGlobalRef(lib->obj);
     free(lib);
-    ALOGV("mpv_lib native destroyed \n");
+    ALOGV("mpv_lib native destroyed, handle %" PRId64, handle);
     return 0;
 }
 

@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -23,9 +24,15 @@ public class MPVLib {
 
     private static final AtomicInteger COUNTER = new AtomicInteger(0);
 
-    private static MPVDataSource.Factory dataSourceFactory = null;
-
     private final long handler;
+
+    private volatile MPVDataSource.Factory dataSourceFactory = null;
+
+    private final List<MPVDataSource> openedDataSources = new ArrayList<>();
+
+    private volatile boolean destroyed;
+
+    private Object lock = new Object();
 
     static {
         String[] libs = {"mpv", "player"};
@@ -38,21 +45,6 @@ public class MPVLib {
         handler = create(context);
         COUNTER.incrementAndGet();
         Log.d(TAG, "created New MPVLib, current count:" + COUNTER.get());
-    }
-
-    public static void setDataSourceFactory(MPVDataSource.Factory factory) {
-        Objects.requireNonNull(factory);
-        dataSourceFactory = factory;
-    }
-
-    /**
-     * Called from native
-     */
-    private static MPVDataSource openDataSource(String uri) throws IOException {
-        if (dataSourceFactory == null) {
-            throw new RuntimeException("Call MPVLib.setFactory first!");
-        }
-        return dataSourceFactory.open(uri);
     }
 
     /**
@@ -70,12 +62,6 @@ public class MPVLib {
      * @return error code
      */
     private native int destroyNative();
-
-    public void destroy() {
-        COUNTER.decrementAndGet();
-        Log.d(TAG, "destroy lib instance, current count:" + COUNTER.get());
-        destroyNative();
-    }
 
     /**
      * @return error code
@@ -220,6 +206,55 @@ public class MPVLib {
 
     public interface LogObserver {
         void logMessage(@NonNull String prefix, int level, @NonNull String text);
+    }
+
+    public void setDataSourceFactory(MPVDataSource.Factory factory) {
+        Objects.requireNonNull(factory);
+        dataSourceFactory = factory;
+    }
+
+    /**
+     * Called from native
+     */
+    private MPVDataSource openDataSource(String uri) throws IOException {
+        if (dataSourceFactory == null) {
+            throw new RuntimeException("Call MPVLib.setFactory first!");
+        }
+        if (destroyed) {
+            return null;
+        }
+        MPVDataSource ds = dataSourceFactory.open(uri, (x) -> {
+            synchronized(lock) {
+                openedDataSources.remove(x);
+            }
+        });
+        if (ds == null) {
+            return null;
+        }
+        synchronized(lock) {
+            if (destroyed) {
+                ds.close();
+                return null;
+            } else {
+                openedDataSources.add(ds);
+                return ds;
+            }
+        }
+    }
+
+    public void destroy() {
+        synchronized(lock) {
+            if (destroyed) {
+                return;
+            }
+            destroyed = true;
+            for (MPVDataSource ds : new ArrayList<>(openedDataSources)) {
+                ds.close();
+            }
+        }
+        COUNTER.decrementAndGet();
+        Log.d(TAG, "destroy lib instance, current count:" + COUNTER.get());
+        destroyNative();
     }
 
     public static class mpvFormat {

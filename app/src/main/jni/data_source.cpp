@@ -173,6 +173,7 @@ void mpv_data_source_cb_close_fn(void *cookie) {
     }
     jobject source = (jobject) cookie;
 
+    ALOGV("mpv close data_source %p ", source);
     env->CallVoidMethod(source, mpv_MPVDataSource_close);
     if (env->ExceptionCheck()) {
         ALOGE("DataSource close with exception");
@@ -203,7 +204,9 @@ void mpv_data_source_cb_cancel_fn(void *cookie) {
     }
     jobject source = (jobject) cookie;
 
-    // seems there are bugs in mpv that call cancel after close
+    // mpv can call cancel after close, this needs us to manage all data_source object,
+    // and if we managee it in Java layer, there is no need to use cancel_cb
+    // ALOGV("mpv cancel on data_source %p ", source);
     // env->CallVoidMethod(source, mpv_MPVDataSource_cancel);
     // if (env->ExceptionCheck()) {
     //     ALOGE("DataSource cancel with exception");
@@ -245,7 +248,7 @@ int mpv_open_data_source_fn(void *user_data, char *uri,
         ALOGE("mpv jni create juri failed");
         return MPV_ERROR_LOADING_FAILED;
     }
-    jobject data_source = env->CallStaticObjectMethod(mpv_MPVLib, mpv_MPVLib_openDataSource, juri);
+    jobject data_source = env->CallObjectMethod((jobject) user_data, mpv_MPVLib_openDataSource, juri);
     env->DeleteLocalRef(juri);
     ALOGV("calling MPVLib openDataSource success");
     if (env->ExceptionCheck()) {

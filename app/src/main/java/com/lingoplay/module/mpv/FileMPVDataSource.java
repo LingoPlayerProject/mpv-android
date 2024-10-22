@@ -9,16 +9,18 @@ public class FileMPVDataSource implements MPVDataSource {
 
     public static class Factory implements MPVDataSource.Factory {
         @Override
-        public MPVDataSource open(String uri) throws IOException {
-            return new FileMPVDataSource(uri.substring("datasource://".length()));
+        public MPVDataSource open(String uri, CloseCallback onCloseCallback) throws IOException {
+            return new FileMPVDataSource(uri.substring("datasource://".length()), onCloseCallback);
         }
     }
 
     private final String path;
     private final RandomAccessFile raf;
+    private final CloseCallback onCloseCallback;
 
-    public FileMPVDataSource(String path) throws IOException {
+    public FileMPVDataSource(String path, CloseCallback onCloseCallback) throws IOException {
         this.path = path;
+        this.onCloseCallback = onCloseCallback;
         this.raf = new RandomAccessFile(path, "r");
     }
 
@@ -68,6 +70,9 @@ public class FileMPVDataSource implements MPVDataSource {
             Log.d("FileMPVDataSource", String.format("call FileMPVDataSource close. path %s", path));
             raf.close();
         } catch (IOException e) {
+        }
+        if (onCloseCallback != null) {
+            onCloseCallback.onClose(this);
         }
     }
 }
