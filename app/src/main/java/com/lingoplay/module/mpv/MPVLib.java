@@ -28,11 +28,11 @@ public class MPVLib {
 
     private volatile MPVDataSource.Factory dataSourceFactory = null;
 
-    private final List<MPVDataSource> openedDataSources = new ArrayList<>();
+    final List<DelegateMPVDataSource> openedDataSources = new ArrayList<>();
 
     private volatile boolean destroyed;
 
-    private Object lock = new Object();
+    private final Object lock = new Object();
 
     static {
         String[] libs = {"mpv", "player"};
@@ -223,21 +223,29 @@ public class MPVLib {
         if (destroyed) {
             return null;
         }
-        MPVDataSource ds = dataSourceFactory.open(uri, (x) -> {
-            synchronized(lock) {
-                openedDataSources.remove(x);
-            }
-        });
+        MPVDataSource ds = dataSourceFactory.open(uri);
         if (ds == null) {
             return null;
         }
+        DelegateMPVDataSource dds = new DelegateMPVDataSource(ds) {
+            private final MPVLib mpvLib = MPVLib.this; // debug info purpose
+            private final long libHandle = MPVLib.this.handler; // debug info purpose
+
+            @Override
+            public void close() {
+                synchronized (lock) {
+                    MPVLib.this.openedDataSources.remove(this);
+                }
+                super.close();
+            }
+        };
         synchronized(lock) {
             if (destroyed) {
                 ds.close();
                 return null;
             } else {
-                openedDataSources.add(ds);
-                return ds;
+                openedDataSources.add(dds);
+                return dds;
             }
         }
     }
@@ -253,7 +261,7 @@ public class MPVLib {
             }
         }
         COUNTER.decrementAndGet();
-        Log.d(TAG, "destroy lib instance, current count:" + COUNTER.get());
+        Log.d(TAG, String.format("destroy lib instance %s, current count %s", handler, COUNTER.get()));
         destroyNative();
     }
 

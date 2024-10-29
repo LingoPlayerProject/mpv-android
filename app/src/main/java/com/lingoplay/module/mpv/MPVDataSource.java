@@ -5,11 +5,7 @@ import java.io.IOException;
 public interface MPVDataSource {
 
     interface Factory {
-        MPVDataSource open(String uri, CloseCallback closeCallback) throws IOException;
-    }
-
-    interface CloseCallback {
-        void onClose(MPVDataSource ds);
+        MPVDataSource open(String uri) throws IOException;
     }
 
     /**
@@ -29,7 +25,9 @@ public interface MPVDataSource {
      */
     void seek(long offset) throws IOException;
 
-    void cancel();
-
+    /**
+     * Close the stream, must be thread safe and idempotent.
+     * The thread calling close and read may be different.
+     */
     void close();
 }
