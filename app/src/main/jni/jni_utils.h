@@ -20,6 +20,8 @@ typedef enum mpv_jni_error {
     MPV_ERROR_JNI_CTX_CLOSED = -1000,
     MPV_ERROR_JNI_INIT_FAILED = -1001,
     MPV_ERROR_JNI_CMD_LONG_ARGS = -1002,
+    MPV_ERROR_JNI_WRONG_ARGS = -1003,
+    MPV_ERROR_JNI_ENOMEM = -1004,
 } mpv_jni_error;
 
 #ifndef UTIL_EXTERN

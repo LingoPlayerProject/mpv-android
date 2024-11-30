@@ -10,6 +10,7 @@
 extern "C" {
     jni_func(jint, setOptionString, jstring option, jstring value);
     jni_func(jint, setOptionStringArraySingle, jstring option, jstring value);
+    jni_func(jint, setOptionStringMap, jstring joption, jobjectArray jkeys, jobjectArray jvals);
 
     jni_func(jobject, getPropertyInt, jstring property);
     jni_func(jint, setPropertyInt, jstring property, jobject value);
@@ -80,6 +81,83 @@ jni_func(jint, setOptionStringArraySingle, jstring joption, jstring jvalue) {
 
     env->ReleaseStringUTFChars(joption, option);
     env->ReleaseStringUTFChars(jvalue, value);
+
+    return result;
+}
+
+jni_func(jint, setOptionStringMap, jstring joption, jobjectArray jkeys, jobjectArray jvals) {
+    mpv_lib* lib = get_mpv_lib(env, obj);
+    if (!lib) return MPV_ERROR_JNI_CTX_CLOSED;
+
+    if (joption == NULL || jkeys == NULL || jvals == NULL) {
+        return MPV_ERROR_JNI_WRONG_ARGS;
+    }
+    int n = env->GetArrayLength(jkeys);
+    if (n != env->GetArrayLength(jvals)) {
+        return MPV_ERROR_JNI_WRONG_ARGS;
+    }
+
+    const char *option = env->GetStringUTFChars(joption, NULL);
+    if (option == NULL) {
+        return MPV_ERROR_JNI_ENOMEM;
+    }
+    
+    mpv_node_list node_list;
+    const char* keys[n];
+    mpv_node vals[n];
+    int result = 0;
+    memset(keys, 0, sizeof(keys));
+    memset(vals, 0, sizeof(vals));
+
+    for (int i = 0; i < n; i++) {
+        jstring k = (jstring)env->GetObjectArrayElement(jkeys, i);
+        jstring v = (jstring)env->GetObjectArrayElement(jvals, i);
+        if (k == NULL || v == NULL) {
+            result = MPV_ERROR_JNI_WRONG_ARGS;
+            goto error;
+        }
+
+        keys[i] = env->GetStringUTFChars(k, NULL);
+        vals[i].u.string = (char*) env->GetStringUTFChars(v, NULL);
+        vals[i].format = MPV_FORMAT_STRING;
+        if (keys[i] == NULL || vals[i].u.string == NULL) {
+            result = MPV_ERROR_JNI_ENOMEM;
+            goto error;
+        }
+
+        env->DeleteLocalRef(k);
+        env->DeleteLocalRef(v);
+    }
+
+    node_list.num = n;
+    node_list.values = vals;
+    node_list.keys = (char**) keys;
+    
+    mpv_node node;
+    node.u.list = &node_list;
+    node.format = MPV_FORMAT_NODE_MAP;
+
+    result = mpv_set_option(lib->ctx, option, MPV_FORMAT_NODE, &node);
+    if (result < 0)
+        ALOGE("mpv_set_option(%s) returned error %s", option, mpv_error_string(result));
+
+error:
+    env->ReleaseStringUTFChars(joption, option);
+
+    for (int i = 0; i < n; i++) {
+        jstring k = (jstring)env->GetObjectArrayElement(jkeys, i);
+        jstring v = (jstring)env->GetObjectArrayElement(jvals, i);
+
+        if (keys[i]) {
+            env->ReleaseStringUTFChars(k, keys[i]);
+        }
+        if (vals[i].u.string) {
+            env->ReleaseStringUTFChars(v, vals[i].u.string);
+        }
+
+        env->DeleteLocalRef(k);
+        env->DeleteLocalRef(v);
+    }
 
     return result;
 }
