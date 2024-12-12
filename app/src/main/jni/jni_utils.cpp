@@ -153,7 +153,7 @@ void init_methods_cache(JNIEnv *env)
 
     mpv_MPVLib = FIND_CLASS("com/lingoplay/module/mpv/MPVLib");
     mpv_MPVLib_handler = env->GetFieldID(mpv_MPVLib, "handler", "J");
-    mpv_MPVLib_event  = env->GetMethodID(mpv_MPVLib, "event", "(IJ)V");
+    mpv_MPVLib_event  = env->GetMethodID(mpv_MPVLib, "event", "(IIJ)V");
     mpv_MPVLib_eventEndFile  = env->GetMethodID(mpv_MPVLib, "eventEndFile", "(II)V");
     mpv_MPVLib_eventProperty  = env->GetMethodID(mpv_MPVLib, "eventProperty", "(Ljava/lang/String;IJJZDLjava/lang/String;)V");
     mpv_MPVLib_logMessage_SiS = env->GetMethodID(mpv_MPVLib, "logMessage", "(Ljava/lang/String;ILjava/lang/String;)V"); // logMessage(String, int, String)

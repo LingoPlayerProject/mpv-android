@@ -121,7 +121,9 @@ static void *dispatcher_thread(void *arg) {
                 break;
             default:
                 //ALOGV("event: %s\n", mpv_event_name(mp_event->event_id));
-                env->CallVoidMethod(obj, mpv_MPVLib_event, mp_event->event_id,
+                env->CallVoidMethod(obj, mpv_MPVLib_event,
+                                    mp_event->event_id,
+                                    (jint) mp_event->error,
                                     (jlong) mp_event->reply_userdata);
                 break;
         }

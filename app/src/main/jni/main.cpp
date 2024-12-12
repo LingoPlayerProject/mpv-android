@@ -23,7 +23,7 @@ extern "C" {
     jni_func(jint, init);
     jni_func(jint, destroyNative);
 
-    jni_func(jint, command, jobjectArray jarray);
+    jni_func(jint, command, jobjectArray jarray, jboolean async, jlong user_data);
 };
 
 static void prepare_environment(JNIEnv *env, jobject appctx) {
@@ -105,7 +105,7 @@ jni_func(jint, destroyNative) {
     return 0;
 }
 
-jni_func(jint, command, jobjectArray jarray) {
+jni_func(jint, command, jobjectArray jarray, jboolean async, jlong user_data) {
     mpv_lib* lib = get_mpv_lib(env, obj);
     if (!lib) return MPV_ERROR_JNI_CTX_CLOSED;
 
@@ -118,7 +118,13 @@ jni_func(jint, command, jobjectArray jarray) {
     for (int i = 0; i < len; ++i)
         arguments[i] = env->GetStringUTFChars((jstring)env->GetObjectArrayElement(jarray, i), NULL);
 
-    int result = mpv_command(lib->ctx, arguments);
+    int result;
+    if (!async) {
+        result = mpv_command(lib->ctx, arguments);
+    } else {
+        result = mpv_command_async(lib->ctx, (int64_t) user_data, arguments);
+        //ALOGV("mpv_command_async %s,%" PRId64 " -> %s\n", arguments[0], (int64_t) user_data, mpv_error_string(result));
+    }
     if (result)
         ALOGE("mpv_command error [%s] -> %s \n", len > 0 ? arguments[0] : "", mpv_error_string(result));
 
