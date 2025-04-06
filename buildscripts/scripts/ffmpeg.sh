@@ -38,11 +38,14 @@ args=(
 	# - devices: no practical use on Android
 	--disable-{muxers,encoders,devices}
 	# useful to taking screenshots
-	--enable-encoder=mjpeg,png
+	--enable-encoder=mjpeg,png,srt,subrip,text
 	# useful for the `dump-cache` command
-	--enable-muxer=mov,matroska,mpegts
+	--enable-muxer=mov,matroska,mpegts,srt
 )
 ../configure "${args[@]}"
 
 make -j$cores
 make DESTDIR="$prefix_dir" install
+
+# 暂时用不到，编译ffmpeg比较复杂，引用标准接口外的代码很麻烦
+# cp config_components.h "$prefix_dir/include/"

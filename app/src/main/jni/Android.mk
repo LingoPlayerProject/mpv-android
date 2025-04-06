@@ -73,8 +73,12 @@ LOCAL_SRC_FILES := \
 	property.cpp \
 	event.cpp \
 	data_source.cpp \
+	ffmpeg_utils.cpp \
+	utils/cJSON.c \
 	thumbnail.cpp
-LOCAL_LDLIBS    := -llog -lGLESv3 -lEGL -latomic
-LOCAL_SHARED_LIBRARIES := swscale avcodec mpv
+# 链接系统库，对于的so不会添加到apk
+LOCAL_LDLIBS    := -llog -lGLESv3 -lEGL -latomic -landroid
+# 链接so库，添加到apk
+LOCAL_SHARED_LIBRARIES := avutil swresample avcodec avformat swscale avfilter postproc avdevice mpv
 
 include $(BUILD_SHARED_LIBRARY)
