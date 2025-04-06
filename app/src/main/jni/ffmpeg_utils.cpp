@@ -39,8 +39,7 @@ static int process_subtitle_packet(AVCodecContext *dec_ctx, AVCodecContext *enc_
     // 解码字幕包
     ret = avcodec_decode_subtitle2(dec_ctx, &subtitle, &got_subtitle, pkt);
     if (ret < 0 || !got_subtitle) {
-        ret = (ret < 0) ? ret : AVERROR_INVALIDDATA;
-        ALOGE("Decode subtitle failed: ret=%d got_sub=%d", ret, got_subtitle);
+        // ALOGE("Decode subtitle failed: ret=%d got_sub=%d", ret, got_subtitle);
         goto cleanup;
     }
 
@@ -251,14 +250,8 @@ jni_func(jint, convertToSrt, jstring fromFilePath, jstring toFilePath, jint trac
 
     while (av_read_frame(in_ctx, pkt) >= 0) {
        if (pkt->stream_index == trackId) {
-            int process_ret = process_subtitle_packet(dec_ctx, enc_ctx, out_ctx, 
-                                                     out_stream, in_stream, pkt);
-            if (process_ret < 0) {
-                ALOGE("Process subtitle packet failed: %d", process_ret);
-                ret = process_ret;
-                av_packet_unref(pkt);
-                goto end; // 发生错误时跳转到整体清理
-            }
+            // 可能有的行会失败，但大部分会成功，所有解析失败了不能立即终止
+            process_subtitle_packet(dec_ctx, enc_ctx, out_ctx, out_stream, in_stream, pkt);
             frame_count++;
         }
         av_packet_unref(pkt);
