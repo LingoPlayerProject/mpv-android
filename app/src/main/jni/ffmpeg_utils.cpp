@@ -97,6 +97,7 @@ jni_func(jint, convertToSrt, jstring fromFilePath, jstring toFilePath, jint trac
     int ret = 0;
     AVPacket* pkt = NULL;
     int frame_count = 0;
+    int discard_frame_count = 0;
     AVCodecContext *dec_ctx = NULL, *enc_ctx = NULL;
     const AVCodec *dec_codec = NULL, *enc_codec = NULL;
     
@@ -204,6 +205,7 @@ jni_func(jint, convertToSrt, jstring fromFilePath, jstring toFilePath, jint trac
             goto end;
         }
         enc_ctx->subtitle_header_size = dec_ctx->subtitle_header_size;
+        ALOGV("ffmpeg_utils convertToSrt copy dec_ctx->subtitle_header to enc_ctx (size=%d)", dec_ctx->subtitle_header_size);
         // ALOGV("ffmpeg_utils convertToSrt copy dec_ctx->subtitle_header to enc_ctx (size=%d): %.*s", dec_ctx->subtitle_header_size,  dec_ctx->subtitle_header_size,  (const char*)dec_ctx->subtitle_header);
     } else {
         // 若解码器无头，显式设置空头
@@ -253,12 +255,14 @@ jni_func(jint, convertToSrt, jstring fromFilePath, jstring toFilePath, jint trac
             // 可能有的行会失败，但大部分会成功，所有解析失败了不能立即终止
             process_subtitle_packet(dec_ctx, enc_ctx, out_ctx, out_stream, in_stream, pkt);
             frame_count++;
+        } else {
+            ALOGE("ffmpeg_utils convertToSrt skip frame with wrong stream_index %d ", (int) (pkt->stream_index));
         }
         av_packet_unref(pkt);
     }
 
     av_write_trailer(out_ctx);
-    ALOGV("ffmpeg_utils convertToSrt success (%s) -> %s, frame count %d ", input_path, output_path, frame_count);
+    ALOGV("ffmpeg_utils convertToSrt success (%s) -> %s, frame count %d, stream count %d, dec_codec_id %s ", input_path, output_path, frame_count, (int) (in_ctx->nb_streams), avcodec_get_name(in_stream->codecpar->codec_id));
 
 end:
     // 逆序释放资源
