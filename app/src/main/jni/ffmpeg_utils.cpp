@@ -27,6 +27,64 @@ extern "C" {
     jni_func(jstring, parseTracks, jstring filePath);
 }
 
+// 辅助函数，处理单个字幕包
+static int process_subtitle_packet(AVCodecContext *dec_ctx, AVCodecContext *enc_ctx, 
+                                  AVFormatContext *out_ctx, AVStream *out_stream,
+                                  AVStream *in_stream, AVPacket *pkt) {
+    int ret = 0;
+    AVSubtitle subtitle = {0};
+    AVPacket *srt_pkt = NULL;
+    int got_subtitle = 0;
+
+    // 解码字幕包
+    ret = avcodec_decode_subtitle2(dec_ctx, &subtitle, &got_subtitle, pkt);
+    if (ret < 0 || !got_subtitle) {
+        ret = (ret < 0) ? ret : AVERROR_INVALIDDATA;
+        ALOGE("Decode subtitle failed: ret=%d got_sub=%d", ret, got_subtitle);
+        goto cleanup;
+    }
+
+    // 分配SRT输出包
+    if (!(srt_pkt = av_packet_alloc())) {
+        ret = AVERROR(ENOMEM);
+        goto cleanup;
+    }
+
+    // 预分配缓冲区（4KB）
+    srt_pkt->data = (uint8_t*)av_malloc(4096);
+    if (!srt_pkt->data) {
+        ret = AVERROR(ENOMEM);
+        goto cleanup;
+    }
+    srt_pkt->size = 4096;
+
+    // 转换时间基到输出流的时间基 (1/1000)
+    srt_pkt->pts = av_rescale_q(pkt->pts, in_stream->time_base, out_stream->time_base);
+    srt_pkt->duration = av_rescale_q(pkt->duration, in_stream->time_base, out_stream->time_base);
+    srt_pkt->stream_index = 0;
+
+    // 编码字幕到SRT格式
+    if ((ret = avcodec_encode_subtitle(enc_ctx, srt_pkt->data, srt_pkt->size, &subtitle)) < 0) {
+        ALOGE("Encode subtitle failed: ret=%d", ret);
+        goto cleanup;
+    }
+    srt_pkt->size = ret; // 更新实际数据大小
+
+    // 写入处理后的数据包
+    if ((ret = av_interleaved_write_frame(out_ctx, srt_pkt)) < 0) {
+        ALOGE("Write frame failed: ret=%d", ret);
+        goto cleanup;
+    }
+
+cleanup:
+    // 确保释放资源
+    if (srt_pkt) {
+        av_freep(&srt_pkt->data); // 显式释放数据缓冲区
+        av_packet_free(&srt_pkt);
+    }
+    avsubtitle_free(&subtitle);
+    return ret;
+}
 
 jni_func(jint, convertToSrt, jstring fromFilePath, jstring toFilePath, jint trackId) {
     const char *input_path = env->GetStringUTFChars(fromFilePath, NULL);
@@ -42,8 +100,6 @@ jni_func(jint, convertToSrt, jstring fromFilePath, jstring toFilePath, jint trac
     int frame_count = 0;
     AVCodecContext *dec_ctx = NULL, *enc_ctx = NULL;
     const AVCodec *dec_codec = NULL, *enc_codec = NULL;
-    AVSubtitle subtitle = {0};
-    AVFrame *frame = NULL;
     
     // 打开输入文件
     ret = avformat_open_input(&in_ctx, input_path, NULL, NULL);
@@ -193,58 +249,17 @@ jni_func(jint, convertToSrt, jstring fromFilePath, jstring toFilePath, jint trac
         in_ctx->streams[i]->discard = (i == trackId) ? AVDISCARD_DEFAULT : AVDISCARD_ALL;
     }
 
-    frame = av_frame_alloc();
-
     while (av_read_frame(in_ctx, pkt) >= 0) {
-        if (pkt->stream_index == trackId) {
-            int got_subtitle = 0;
-            ret = avcodec_decode_subtitle2(dec_ctx, &subtitle, &got_subtitle, pkt);
-            if (ret < 0 || !got_subtitle) {
+       if (pkt->stream_index == trackId) {
+            int process_ret = process_subtitle_packet(dec_ctx, enc_ctx, out_ctx, 
+                                                     out_stream, in_stream, pkt);
+            if (process_ret < 0) {
+                ALOGE("Process subtitle packet failed: %d", process_ret);
+                ret = process_ret;
                 av_packet_unref(pkt);
-                continue;
+                goto end; // 发生错误时跳转到整体清理
             }
-
-            // 转换时间基到输出流的时间基 (1/1000)
-            AVPacket *srt_pkt = av_packet_alloc();
-            if (!srt_pkt) {
-                ret = AVERROR(ENOMEM);
-                ALOGE("Failed to alloc srt packet");
-                avsubtitle_free(&subtitle);
-                break;
-            }
-            // 预分配缓冲区（4KB通常足够，SRT文本较小）
-            srt_pkt->data = (uint8_t*)av_malloc(4096); // 关键修复点
-            srt_pkt->size = 4096; // 初始缓冲区大小
-            // 配置输出包参数
-            srt_pkt->stream_index = 0; // 输出流只有一个字幕流
-            srt_pkt->pts = av_rescale_q(pkt->pts, in_stream->time_base, out_stream->time_base);
-            srt_pkt->duration = av_rescale_q(pkt->duration, in_stream->time_base, out_stream->time_base);
-
-            // 关键步骤：编码字幕数据到SRT格式
-            ret = avcodec_encode_subtitle(enc_ctx, srt_pkt->data, srt_pkt->size, &subtitle);
-            if (ret < 0) {
-                char error_buf[AV_ERROR_MAX_STRING_SIZE];
-                av_strerror(ret, error_buf, sizeof(error_buf));
-                ALOGE("avcodec_encode_subtitle failed: %s", error_buf);
-                av_packet_free(&srt_pkt);
-                avsubtitle_free(&subtitle);
-                av_packet_unref(pkt);
-                continue;
-            }
-
-            // 设置实际数据大小
-            srt_pkt->size = ret;
-
-            // 写入处理后的数据包 00:00 -> 11:11 的行头是在muxer逻辑里面，编码器只生成内容
-            if ((ret = av_interleaved_write_frame(out_ctx, srt_pkt)) < 0) {
-                char error_buf[AV_ERROR_MAX_STRING_SIZE];
-                av_strerror(ret, error_buf, sizeof(error_buf));
-                ALOGE("Write frame failed: %s", error_buf);
-            }
-
             frame_count++;
-            av_packet_free(&srt_pkt);
-            avsubtitle_free(&subtitle);
         }
         av_packet_unref(pkt);
     }
@@ -254,17 +269,16 @@ jni_func(jint, convertToSrt, jstring fromFilePath, jstring toFilePath, jint trac
 
 end:
     // 逆序释放资源
+    if (pkt) {
+        av_packet_free(&pkt);
+    }
     if (enc_ctx) {
+        av_freep(&enc_ctx->subtitle_header); // 显式释放
         avcodec_free_context(&enc_ctx); // 内部会调用avcodec_close()
     }
     if (dec_ctx) {
         avcodec_free_context(&dec_ctx);
     }
-    if (frame) {
-        av_frame_free(&frame);
-    }
-    avsubtitle_free(&subtitle); // 确保释放解码后的字幕数据
-
     if (in_ctx) {
         avformat_close_input(&in_ctx);
     }
