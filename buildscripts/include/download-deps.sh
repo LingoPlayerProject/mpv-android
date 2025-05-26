@@ -17,6 +17,13 @@ fi
 # dav1d
 [ ! -d dav1d ] && git clone https://github.com/videolan/dav1d
 
+# libopus
+if [ ! -d opus ]; then
+    mkdir opus
+    $WGET https://github.com/xiph/opus/releases/download/v$v_opus/opus-$v_opus.tar.gz -O - | \
+        tar -xz -C opus --strip-components=1
+fi
+
 # ffmpeg
 if [ ! -d ffmpeg ]; then
 	git clone https://github.com/FFmpeg/FFmpeg ffmpeg

@@ -26,9 +26,9 @@ args=(
 	--target-os=android --enable-cross-compile
 	--cross-prefix=$ndk_triple- --cc=$CC --pkg-config=pkg-config --nm=llvm-nm
 	--arch=${ndk_triple%%-*} --cpu=$cpu
-	--extra-cflags="-I$prefix_dir/include $cpuflags" --extra-ldflags="-L$prefix_dir/lib"
+	--extra-cflags="-I$prefix_dir/include $cpuflags" --extra-ldflags="-L$prefix_dir/lib -lopus"
 
-	--enable-{jni,mediacodec,mbedtls,libdav1d} --disable-vulkan
+	--enable-{jni,mediacodec,mbedtls,libdav1d,libopus} --disable-vulkan
 	--disable-static --enable-shared --enable-{gpl,version3}
 
 	# disable unneeded parts
@@ -36,16 +36,20 @@ args=(
 	# to keep the build lean we disable some feature quite aggressively:
 	# - muxers, encoders: mpv-android does not have any way to use these
 	# - devices: no practical use on Android
-	--disable-{muxers,encoders,devices}
+	--disable-devices
 	# useful to taking screenshots
-	--enable-encoder=mjpeg,png,srt,subrip,text
-	# useful for the `dump-cache` command
-	--enable-muxer=mov,matroska,mpegts,srt
+	# --enable-encoder=mjpeg,png,srt,subrip,text
+    # useful for the `dump-cache` command
+	# --enable-muxer=mov,matroska,mpegts,srt
+
+    # 已经启用了全部decoders，再启用全部encoders，rel版本的so没有明显变大，不如全部启用，ffmpeg转码可以支持更多格式
+	--enable-encoders
+	--enable-muxers
 )
+
 ../configure "${args[@]}"
 
 make -j$cores
 make DESTDIR="$prefix_dir" install
 
-# 暂时用不到，编译ffmpeg比较复杂，引用标准接口外的代码很麻烦
-# cp config_components.h "$prefix_dir/include/"
+cp config.h "$prefix_dir/include/ffmpeg_config.h"

@@ -4,10 +4,8 @@
 # Make sure to keep v_ndk and v_ndk_n in sync, both are listed on the NDK download page
 
 v_sdk=11076708_latest
-# v_ndk=r27b
-# v_ndk_n=27.1.12297006
-v_ndk=r25b
-v_ndk_n=25.1.8937393
+v_ndk=r27c
+v_ndk_n=27.2.12479018
 v_sdk_platform=34
 v_sdk_build_tools=34.0.0
 
@@ -17,14 +15,15 @@ v_harfbuzz=10.0.1
 v_fribidi=1.0.16
 v_freetype=2-13-3
 v_mbedtls=3.6.1
-
+v_opus=1.5.2 # ffmpeg转码工具使用，编码音频到opus格式
 
 ## Dependency tree
 # I would've used a dict but putting arrays in a dict is not a thing
 
+dep_opus=()
 dep_mbedtls=()
 dep_dav1d=()
-dep_ffmpeg=(mbedtls dav1d)
+dep_ffmpeg=(mbedtls dav1d opus)
 dep_freetype2=()
 dep_fribidi=()
 dep_harfbuzz=()
@@ -39,7 +38,7 @@ dep_mpv_android=(mpv)
 ## for CI workflow
 
 # pinned ffmpeg revision
-v_ci_ffmpeg=n7.0.2
+v_ci_ffmpeg=n7.1.1
 
 # filename used to uniquely identify a build prefix
-ci_tarball="prefix-ndk-${v_ndk}-lua-${v_lua}-unibreak-${v_unibreak}-harfbuzz-${v_harfbuzz}-fribidi-${v_fribidi}-freetype-${v_freetype}-mbedtls-${v_mbedtls}-ffmpeg-${v_ci_ffmpeg}.tgz"
+ci_tarball="prefix-ndk-${v_ndk}-lua-${v_lua}-opus-${v_opus}-unibreak-${v_unibreak}-harfbuzz-${v_harfbuzz}-fribidi-${v_fribidi}-freetype-${v_freetype}-mbedtls-${v_mbedtls}-ffmpeg-${v_ci_ffmpeg}.tgz"
